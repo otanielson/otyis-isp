@@ -1,0 +1,256 @@
+  <div class="admin-tab" id="tab-system">
+    <div class="admin-panel mb-3">
+      <div class="admin-panel__head d-flex justify-content-between align-items-center">
+        <div>
+          <span class="text-uppercase small text-muted">Instalação</span>
+          <h6 class="mb-0 fw-bold"><i class="bi bi-building-gear me-1"></i><span id="radiusProviderName">Provedor</span> <span id="radiusModeBadge" class="badge ms-2">—</span></h6>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btnRadiusRestart"><i class="bi bi-arrow-repeat me-1"></i>Reiniciar RADIUS</button>
+        </div>
+      </div>
+      <div class="admin-panel__body">
+        <div class="row g-2 small">
+          <div class="col-md-4">
+            <div class="border rounded p-3 bg-light h-100">
+              <div class="text-muted">Nome fantasia</div>
+              <div class="fw-bold" id="radiusProviderFantasyName">—</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="border rounded p-3 bg-light h-100">
+              <div class="text-muted">Serviço</div>
+              <div class="fw-bold"><code id="radiusServiceName">—</code></div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="border rounded p-3 bg-light h-100">
+              <div class="text-muted">Modo</div>
+              <div class="fw-bold" id="radiusInstallMode">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="admin-panel mb-3">
+      <div class="admin-panel__head d-flex justify-content-between align-items-center">
+        <div>
+          <span class="text-uppercase small text-muted">RADIUS</span>
+          <h6 class="mb-0 fw-bold"><i class="bi bi-hdd-network me-1"></i>Concentradores (NAS)</h6>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-sm btn-outline-primary" id="btnLoadNas"><i class="bi bi-arrow-clockwise"></i> Atualizar</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btnSyncNas" title="Sincroniza lista com a tabela nas do FreeRADIUS">Sincronizar com RADIUS</button>
+          <button type="button" class="btn btn-sm btn-primary" id="btnNewNas"><i class="bi bi-plus-lg me-1"></i> Cadastrar concentrador</button>
+        </div>
+      </div>
+      <div class="admin-panel__body">
+        <div id="outNasOnlineSummary" class="mb-2 small text-muted" style="display: none;"><strong>Concentradores online:</strong> <span id="nasOnlineCount">0</span> de <span id="nasOnlineTotal">0</span></div>
+        <div id="outNasList"><span class="text-muted">Clique em <strong>Atualizar</strong> para carregar os concentradores.</span></div>
+        <div class="border-top bg-light p-3 mt-3" id="nasFormSection" style="display:none">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0 fw-bold" id="modalNasTitle">Novo concentrador</h6>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnNasFormVoltar"><i class="bi bi-arrow-left me-1"></i>Voltar</button>
+          </div>
+          <input type="hidden" id="nasId" />
+          <div class="mb-2"><label class="form-label small">Nome <span class="text-danger">*</span></label><input type="text" class="form-control form-control-sm" id="nasName" placeholder="Ex: NAS-BR-01" /></div>
+          <div class="mb-2"><label class="form-label small">IP do NAS <span class="text-danger">*</span></label><input type="text" class="form-control form-control-sm" id="nasIp" placeholder="Ex: 10.0.0.1" /></div>
+          <div class="mb-2"><label class="form-label small">Descrição (opcional)</label><input type="text" class="form-control form-control-sm" id="nasDescription" placeholder="Ex: Concentrador principal" /></div>
+          <div class="mb-2"><div class="form-check"><input type="checkbox" class="form-check-input" id="nasActive" checked /><label class="form-check-label small" for="nasActive">Ativo</label></div></div>
+          <div id="nasFormError" class="alert alert-danger py-2 d-none small"></div>
+          <button type="button" class="btn btn-primary btn-sm" id="btnSaveNas">Salvar</button>
+        </div>
+      </div>
+    </div>
+    <div class="admin-panel mb-3">
+      <div class="admin-panel__head d-flex justify-content-between align-items-center">
+        <div>
+          <span class="text-uppercase small text-muted">RADIUS</span>
+          <h6 class="mb-0 fw-bold"><i class="bi bi-router me-1"></i>Estatísticas da rede &amp; Clientes online <span id="radiusStatusBadge" class="badge ms-2">—</span></h6>
+        </div>
+        <div>
+          <button type="button" class="btn btn-sm btn-outline-primary me-1" id="btnRadiusRefreshOnline"><i class="bi bi-arrow-clockwise me-1"></i>Atualizar</button>
+          <button type="button" class="btn btn-sm btn-outline-warning" id="btnApplyQuota" title="Aplica franquia: clientes que excederam o limite vão para o grupo reduzido"><i class="bi bi-database-down me-1"></i>Aplicar franquia</button>
+        </div>
+      </div>
+      <div class="admin-panel__body">
+        <div id="radiusCredentialsBlock" class="mb-3 p-3 rounded border bg-light" style="display: none;">
+          <div class="small text-muted mb-2"><strong>Credenciais RADIUS da instalação</strong></div>
+          <p id="radiusHostWarning" class="small text-warning mb-2" style="display: none;"><i class="bi bi-exclamation-triangle me-1"></i>O NAS precisa do <strong>IP do servidor</strong> (não 127.0.0.1). Se o concentrador estiver em outro equipamento, ajuste <code>RADIUS_HOST</code> no <code>.env</code> com o IP público ou da LAN desta instalação e reinicie o serviço. Também abra as portas UDP 1812 e 1813 no firewall.</p>
+          <div class="row g-2 small">
+            <div class="col-md-4">
+              <label class="form-label mb-0 text-muted">Host</label>
+              <input type="text" class="form-control form-control-sm font-monospace" id="radiusCredHost" readonly>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label mb-0 text-muted">Porta</label>
+              <input type="text" class="form-control form-control-sm font-monospace" id="radiusCredPort" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label mb-0 text-muted">Secret (chave)</label>
+              <div class="input-group input-group-sm">
+                <input type="password" class="form-control font-monospace" id="radiusCredSecret" readonly placeholder="—">
+                <button type="button" class="btn btn-outline-secondary" id="btnRadiusSecretToggle" title="Mostrar/ocultar"> <i class="bi bi-eye"></i> </button>
+                <button type="button" class="btn btn-outline-primary" id="btnRadiusSecretCopy" title="Copiar chave"> <i class="bi bi-clipboard"></i> Copiar </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="radiusInitStatusBlock" class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 rounded bg-light border">
+          <span class="small text-muted me-1">Inicialização FreeRADIUS:</span>
+          <span id="radiusInitStatusBadge" class="badge">—</span>
+          <span id="radiusInitStatusMessage" class="small text-secondary">Carregando…</span>
+          <span id="radiusInitStatusHints" class="small text-warning" style="display: none;"></span>
+        </div>
+        <div class="row g-2 mb-3" id="radiusStatsCards">
+          <div class="col-md-3">
+            <div class="border rounded p-3 bg-light">
+              <div class="small text-muted">Clientes online</div>
+              <div class="fs-4 fw-bold" id="radiusStatOnline">—</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="border rounded p-3 bg-light">
+              <div class="small text-muted">Tráfego hoje (↓/↑)</div>
+              <div class="fs-6 fw-bold" id="radiusStatTraffic">—</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="border rounded p-3 bg-light">
+              <div class="small text-muted" title="Máximo de conexões simultâneas no dia">Pico simultâneo hoje</div>
+              <div class="fs-4 fw-bold" id="radiusStatPeak">—</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="border rounded p-3 bg-light">
+              <div class="small text-muted">Total usuários RADIUS</div>
+              <div class="fs-4 fw-bold" id="radiusStatTotalUsers">—</div>
+            </div>
+          </div>
+        </div>
+        <div id="radiusSummaryBlock" class="mb-3 small text-muted" style="display: none;">
+          <strong>Resumo:</strong> <span id="radiusSummaryText">—</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead><tr><th>Usuário</th><th>IP</th><th>NAS</th><th>Grupo</th><th>Início</th><th>Duração</th><th>↓ Download</th><th>↑ Upload</th><th></th></tr></thead>
+            <tbody id="radiusOnlineTableBody">
+              <tr><td colspan="9" class="text-center text-muted py-3">Clique em <strong>Atualizar</strong> para carregar sessões ativas.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="admin-panel mb-3">
+      <div class="admin-panel__head d-flex justify-content-between align-items-center">
+        <div>
+          <span class="text-uppercase small text-muted">Hotspot</span>
+          <h6 class="mb-0 fw-bold"><i class="bi bi-ticket-perforated me-1"></i>Vouchers (Portal Captive)</h6>
+        </div>
+        <div>
+          <button type="button" class="btn btn-sm btn-outline-secondary me-1" id="btnLoadVouchers"><i class="bi bi-arrow-clockwise me-1"></i>Listar</button>
+          <button type="button" class="btn btn-sm btn-primary" id="btnGenerateVouchers"><i class="bi bi-plus-lg me-1"></i>Gerar vouchers</button>
+        </div>
+      </div>
+      <div class="admin-panel__body">
+        <div id="radiusVouchersOutput" class="small text-muted">Clique em <strong>Listar</strong> para ver os vouchers. Use <strong>Gerar vouchers</strong> para criar (usuário RADIUS: voucher_ID, senha: código).</div>
+      </div>
+    </div>
+    <div class="admin-panel mb-3">
+      <div class="admin-panel__head d-flex justify-content-between align-items-center">
+        <div>
+          <span class="text-uppercase small text-muted">RADIUS</span>
+          <h6 class="mb-0 fw-bold"><i class="bi bi-link-45deg me-1"></i>Redirect por inadimplência</h6>
+        </div>
+        <button type="button" class="btn btn-sm btn-primary" id="btnSaveRadiusConfig">Salvar</button>
+      </div>
+      <div class="admin-panel__body">
+        <label class="form-label small">URL para redirecionar cliente bloqueado (WISPr-Redirect-URL)</label>
+        <input type="url" class="form-control form-control-sm mb-2" id="radiusConfigBlockRedirectUrl" placeholder="https://pagamento.isp.com/bloqueado" />
+        <small class="text-muted">Deixe vazio para não enviar redirect. Alguns NAS (ex.: Mikrotik Hotspot) usam este atributo.</small>
+      </div>
+    </div>
+    <div class="admin-panel mb-3">
+      <div class="admin-panel__head d-flex justify-content-between align-items-center">
+        <div>
+          <span class="text-uppercase small text-muted">Validação</span>
+          <h6 class="mb-0 fw-bold"><i class="bi bi-shield-check me-1"></i>Teste de autenticação RADIUS</h6>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="btnRadiusTest"><i class="bi bi-play-circle me-1"></i>Testar</button>
+      </div>
+      <div class="admin-panel__body">
+        <div class="row g-2">
+          <div class="col-md-5">
+            <label class="form-label small">Usuário PPPoE</label>
+            <input type="text" class="form-control form-control-sm font-monospace" id="radiusTestUsername" placeholder="Ex: cliente123" />
+          </div>
+          <div class="col-md-5">
+            <label class="form-label small">Senha PPPoE</label>
+            <input type="password" class="form-control form-control-sm font-monospace" id="radiusTestPassword" placeholder="Senha da instalação" />
+          </div>
+          <div class="col-md-2 d-flex align-items-end">
+            <small class="text-muted">Use os dados da instalação para validar o Access-Request.</small>
+          </div>
+        </div>
+        <div id="radiusTestOutput" class="mt-2 small text-muted">Preencha usuário e senha para validar a autenticação diretamente no serviço RADIUS desta instalação.</div>
+      </div>
+    </div>
+    <div class="admin-panel mb-3">
+      <div class="admin-panel__head d-flex justify-content-between align-items-center">
+        <div>
+          <span class="text-uppercase small text-muted">Auditoria</span>
+          <h6 class="mb-0 fw-bold"><i class="bi bi-shield-exclamation me-1"></i>Falhas de autenticação</h6>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnRadiusAuthFailures"><i class="bi bi-arrow-clockwise me-1"></i>Carregar</button>
+      </div>
+      <div class="admin-panel__body">
+        <div id="radiusAuthFailuresOutput" class="small text-muted">Clique em <strong>Carregar</strong> para ver as últimas tentativas de login (radpostauth).</div>
+      </div>
+    </div>
+    <div class="admin-panel">
+      <div class="admin-panel__head d-flex justify-content-between align-items-center">
+        <div>
+          <span class="text-uppercase small text-muted">Sistema</span>
+          <h6 class="mb-0 fw-bold"><i class="bi bi-gear me-1"></i>Servidor RADIUS &amp; Logs</h6>
+        </div>
+      </div>
+      <div class="admin-panel__body">
+        <div class="row g-3">
+          <div class="col-lg-5">
+            <div class="edit-form-section">
+              <div class="edit-form-section__head"><i class="bi bi-hdd-network"></i> Filtro de logs do FreeRADIUS</div>
+              <div class="edit-form-section__body">
+                <p class="small text-muted mb-2">Use o usuário PPPoE ou outra expressão presente nas linhas de log para localizar eventos específicos deste cliente.</p>
+                <div class="mb-2">
+                  <label class="form-label small">Usuário PPPoE / filtro</label>
+                  <input type="text" class="form-control form-control-sm font-monospace" id="radiusLogUser" placeholder="Ex: multi123, PPPoE do cliente" />
+                </div>
+                <div class="row g-2 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label small">Linhas (tail)</label>
+                    <input type="number" class="form-control form-control-sm" id="radiusLogTail" min="50" max="2000" value="400" />
+                  </div>
+                  <div class="col-md-6 d-flex align-items-end">
+                    <button type="button" class="btn btn-sm btn-outline-primary w-100" id="btnRadiusLoadLogs">
+                      <i class="bi bi-arrow-clockwise me-1"></i>Carregar logs
+                    </button>
+                  </div>
+                </div>
+                <p class="small text-muted mb-0">Os logs são lidos diretamente do serviço FreeRADIUS desta instalação.</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-7 d-flex">
+            <div class="edit-form-section flex-grow-1">
+              <div class="edit-form-section__head"><i class="bi bi-terminal"></i> Últimos logs do RADIUS</div>
+              <div class="edit-form-section__body">
+                <div id="radiusLogsOutput" class="border bg-dark text-light rounded small p-2" style="min-height: 220px; max-height: 420px; overflow: auto; font-family: SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace; white-space: pre-wrap; word-break: break-all;">
+                  <span class="text-muted">Clique em <strong>Carregar logs</strong> para ver as últimas linhas do serviço RADIUS desta instalação.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>

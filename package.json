@@ -1,0 +1,52 @@
+{
+  "name": "multi-portal",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch server.ts",
+    "build": "tsc",
+    "build:portal": "tsc -p web/ts/tsconfig.json",
+    "build:portal-spa": "node scripts/build-portal-spa.js",
+    "start": "node dist/server.js",
+    "nginx-tenants": "node scripts/update-nginx-tenants.mjs",
+    "nginx-tenants:reload": "node scripts/update-nginx-tenants.mjs --reload",
+    "export-provider": "node scripts/export-provider.mjs",
+    "fix-tenant-master": "node scripts/fix-tenant-master.mjs",
+    "sync-tenant-site": "node scripts/sync-tenant-site.mjs",
+    "update-tenant-sites": "node scripts/update-tenant-sites.mjs",
+    "update-tenant-stacks": "node scripts/update-tenant-stacks.mjs",
+    "update-databases": "node scripts/update-databases.mjs",
+    "update-databases:tenants": "node scripts/update-databases.mjs --tenants",
+    "update-tenant-radius": "node scripts/update-tenant-radius.mjs",
+    "deploy": "node scripts/deploy.mjs"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "bootstrap": "^5.3.8",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.0",
+    "multer": "^2.1.1",
+    "nanoid": "^5.0.7",
+    "pg": "^8.19.0",
+    "radius": "^1.1.4",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/bootstrap": "^5.2.10",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.9",
+    "@types/multer": "^2.1.0",
+    "@types/node": "^22.10.1",
+    "@types/pg": "^8.18.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

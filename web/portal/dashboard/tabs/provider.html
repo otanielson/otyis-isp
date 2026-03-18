@@ -1,0 +1,238 @@
+  <div class="admin-tab" id="tab-provider">
+    <div class="admin-panel">
+      <div class="admin-panel__head d-flex justify-content-between align-items-center">
+        <div>
+          <span class="text-uppercase small text-muted">Administração</span>
+          <h6 class="mb-0 fw-bold"><i class="bi bi-building-gear me-1"></i>Dados do Provedor</h6>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btnProviderReload"><i class="bi bi-arrow-clockwise me-1"></i>Recarregar</button>
+          <button type="button" class="btn btn-sm btn-primary" id="btnProviderSave"><i class="bi bi-check-lg me-1"></i>Salvar alterações</button>
+        </div>
+      </div>
+      <div class="admin-panel__body">
+        <div id="providerForm">
+          <div class="accordion accordion-flush" id="providerAccordion">
+            <div class="accordion-item border rounded mb-2">
+              <h2 class="accordion-header">
+                <button class="accordion-button py-3" type="button" data-bs-toggle="collapse" data-bs-target="#provIdentidade" aria-expanded="true" aria-controls="provIdentidade">
+                  <i class="bi bi-person-badge me-2"></i>Identidade do provedor
+                </button>
+              </h2>
+              <div id="provIdentidade" class="accordion-collapse collapse show" data-bs-parent="#providerAccordion">
+                <div class="accordion-body pt-0">
+          <div class="row g-3">
+            <div class="col-lg-6">
+              <div class="edit-form-section">
+                <div class="edit-form-section__head d-none"><i class="bi bi-person-badge"></i> Identidade do provedor</div>
+                <div class="edit-form-section__body">
+                  <div class="mb-2">
+                    <label class="form-label">Nome fantasia <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="provFantasyName" placeholder="Ex: Multi Telecom" />
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Razão social</label>
+                    <input type="text" class="form-control" id="provLegalName" placeholder="Ex: Multi Telecom LTDA" />
+                  </div>
+                  <div class="row g-2">
+                    <div class="col-md-6">
+                      <label class="form-label">CPF/CNPJ</label>
+                      <input type="text" class="form-control" id="provDocument" placeholder="Somente números" />
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label">Inscr. Est.</label>
+                      <input type="text" class="form-control" id="provIE" />
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label">Inscr. Mun.</label>
+                      <input type="text" class="form-control" id="provIM" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item border rounded mb-2">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-3" type="button" data-bs-toggle="collapse" data-bs-target="#provContato" aria-expanded="false" aria-controls="provContato">
+                  <i class="bi bi-headset me-2"></i>Contato e suporte
+                </button>
+              </h2>
+              <div id="provContato" class="accordion-collapse collapse" data-bs-parent="#providerAccordion">
+                <div class="accordion-body pt-0">
+            <div class="row g-3">
+            <div class="col-12">
+              <div class="edit-form-section">
+                <div class="edit-form-section__head d-none"><i class="bi bi-headset"></i> Contato e suporte</div>
+                <div class="edit-form-section__body">
+                  <div class="row g-2 mb-2">
+                    <div class="col-md-6">
+                      <label class="form-label">WhatsApp de suporte</label>
+                      <input type="text" class="form-control" id="provWhatsapp" placeholder="(00) 90000-0000" />
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Telefone fixo</label>
+                      <input type="text" class="form-control" id="provPhone" placeholder="(00) 0000-0000" />
+                    </div>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Email principal</label>
+                    <input type="email" class="form-control" id="provEmail" placeholder="contato@provedor.com.br" />
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Site / domínio</label>
+                    <input type="text" class="form-control" id="provWebsite" placeholder="https://www.provedor.com.br" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mt-1">
+            <div class="col-lg-6">
+              <div class="edit-form-section">
+                <div class="edit-form-section__head"><i class="bi bi-geo-alt"></i> Endereço principal</div>
+                <div class="edit-form-section__body">
+                  <div class="row g-2 mb-2">
+                    <div class="col-md-8">
+                      <label class="form-label">Logradouro</label>
+                      <input type="text" class="form-control form-control-sm" id="provStreet" />
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label">Número</label>
+                      <input type="text" class="form-control form-control-sm" id="provNumber" />
+                    </div>
+                  </div>
+                  <div class="row g-2 mb-2">
+                    <div class="col-md-6">
+                      <label class="form-label">Complemento</label>
+                      <input type="text" class="form-control form-control-sm" id="provComplement" />
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Bairro</label>
+                      <input type="text" class="form-control form-control-sm" id="provNeighborhood" />
+                    </div>
+                  </div>
+                  <div class="row g-2">
+                    <div class="col-md-5">
+                      <label class="form-label">Cidade</label>
+                      <input type="text" class="form-control form-control-sm" id="provCity" />
+                    </div>
+                    <div class="col-md-2">
+                      <label class="form-label">UF</label>
+                      <input type="text" class="form-control form-control-sm text-uppercase" id="provState" maxlength="2" />
+                    </div>
+                    <div class="col-md-5">
+                      <label class="form-label">CEP</label>
+                      <input type="text" class="form-control form-control-sm" id="provZip" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <div class="edit-form-section">
+                <div class="edit-form-section__head"><i class="bi bi-palette"></i> Branding e exibição</div>
+                <div class="edit-form-section__body">
+                  <div class="mb-2">
+                    <label class="form-label">Logo do painel (URL)</label>
+                    <div class="d-flex gap-1 flex-wrap align-items-center">
+                      <input type="text" class="form-control form-control-sm flex-grow-1" id="provLogoPortal" placeholder="/assets/logo-portal.svg" style="min-width:140px;" />
+                      <input type="file" class="d-none" id="provLogoPortalFile" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" />
+                      <button type="button" class="btn btn-sm btn-outline-primary" id="btnProvLogoPortalUpload" title="Enviar arquivo"><i class="bi bi-upload me-1"></i> Enviar</button>
+                    </div>
+                    <div class="provider-logo-preview-wrap mt-1" id="provLogoPortalPreviewWrap" style="display:none;"><img id="provLogoPortalPreview" alt="" style="max-height:36px;max-width:120px;" /></div>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Logo do site (URL)</label>
+                    <div class="d-flex gap-1 flex-wrap align-items-center">
+                      <input type="text" class="form-control form-control-sm flex-grow-1" id="provLogoSite" placeholder="/assets/logo-site.svg" style="min-width:140px;" />
+                      <input type="file" class="d-none" id="provLogoSiteFile" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" />
+                      <button type="button" class="btn btn-sm btn-outline-primary" id="btnProvLogoSiteUpload" title="Enviar arquivo"><i class="bi bi-upload me-1"></i> Enviar</button>
+                    </div>
+                    <div class="provider-logo-preview-wrap mt-1" id="provLogoSitePreviewWrap" style="display:none;"><img id="provLogoSitePreview" alt="" style="max-height:36px;max-width:120px;" /></div>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Logo para recibos / impressão (URL)</label>
+                    <input type="text" class="form-control form-control-sm" id="provLogoReceipt" placeholder="/assets/logo-recibo.png" />
+                    <div class="form-text">Usado em recibos, comprovantes e faturas geradas pelo sistema.</div>
+                  </div>
+                  <div class="row g-2 mb-2">
+                    <div class="col-md-6">
+                      <label class="form-label">Cor primária</label>
+                      <input type="color" class="form-control form-control-color" id="provColorPrimary" value="#0d3a5c" />
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Cor de destaque</label>
+                      <input type="color" class="form-control form-control-color" id="provColorAccent" value="#0b5ed7" />
+                    </div>
+                  </div>
+                  <div class="row g-2">
+                    <div class="col-md-6">
+                      <label class="form-label">Nome curto</label>
+                      <input type="text" class="form-control form-control-sm" id="provShortName" placeholder="Ex: Multi" />
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Fuso horário (opcional)</label>
+                      <input type="text" class="form-control form-control-sm" id="provTimezone" placeholder="America/Sao_Paulo" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mt-3">
+            <div class="col-lg-6">
+              <div class="edit-form-section">
+                <div class="edit-form-section__head"><i class="bi bi-receipt"></i> Personalização de recibos e faturas</div>
+                <div class="edit-form-section__body">
+                  <p class="small text-muted mb-2">Escolha o modelo para editar. Use variáveis como <code>{{cliente_nome}}</code>, <code>{{documento}}</code>, <code>{{endereco}}</code>, <code>{{valor}}</code>, <code>{{data}}</code>, <code>{{empresa_nome}}</code>.</p>
+                  <div class="mb-2">
+                    <div class="btn-group btn-group-sm flex-wrap" role="group" aria-label="Modelos de recibo">
+                      <button type="button" class="btn btn-outline-secondary active" data-receipt-key="pagar">Recibo contas a pagar</button>
+                      <button type="button" class="btn btn-outline-secondary" data-receipt-key="receber_quitacao">Recibo a receber / quitação</button>
+                      <button type="button" class="btn btn-outline-secondary" data-receipt-key="fatura_suporte">Fatura de suporte</button>
+                      <button type="button" class="btn btn-outline-secondary" data-receipt-key="fatura_instalacao">Fatura instalação</button>
+                      <button type="button" class="btn btn-outline-secondary" data-receipt-key="fatura_mudanca_endereco">Fatura mudança de endereço</button>
+                    </div>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label small">Nome do modelo</label>
+                    <input type="text" class="form-control form-control-sm" id="receiptTemplateName" placeholder="Ex: Recibo padrão de pagamento" />
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label small">Descrição (opcional)</label>
+                    <input type="text" class="form-control form-control-sm" id="receiptTemplateDescription" placeholder="Resumo do uso deste modelo" />
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label small">Corpo do recibo / fatura</label>
+                    <textarea class="form-control form-control-sm font-monospace" id="receiptTemplateBody" rows="8" placeholder="Texto do recibo em formato livre..."></textarea>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-primary" id="btnReceiptTemplateSave"><i class="bi bi-check-lg me-1"></i>Salvar modelo</button>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-6 d-flex">
+              <div class="edit-form-section flex-grow-1">
+                <div class="edit-form-section__head"><i class="bi bi-eye"></i> Pré-visualização</div>
+                <div class="edit-form-section__body">
+                  <div id="receiptTemplatePreview" class="border rounded p-3 bg-white small" style="min-height: 180px;">
+                    <p class="text-muted mb-0">Digite o modelo ao lado para visualizar aqui uma prévia simples (sem PDF). Variáveis serão destacadas.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="provError" class="alert alert-danger py-2 small mt-3 d-none"></div>
+          <p class="text-muted small mt-2 mb-0">Essas informações podem ser usadas em contratos, notas, cabeçalho do portal e integrações futuras.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Aba Sistema (RADIUS, concentradores, logs, integrações) -->

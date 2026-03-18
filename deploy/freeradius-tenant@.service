@@ -1,0 +1,16 @@
+[Unit]
+Description=FreeRADIUS for tenant %i (Multi-Portal)
+After=network.target docker.service
+# Opcional: After=postgresql.service se Postgres for systemd
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/radiusd -d /srv/tenants/%i/radius -f
+Restart=on-failure
+RestartSec=5
+# FreeRADIUS pode precisar de User=freerad; descomente se necessário
+# User=freerad
+# Group=freerad
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,171 @@
+      <div class="admin-tab" id="tab-finance">
+        <div class="admin-panel finance-panel">
+          <div class="admin-panel__head finance-panel__head">
+            <span><i class="bi bi-currency-dollar me-1"></i> Centro de Contas — Financeiro</span>
+          </div>
+          <div class="admin-panel__body">
+            <nav class="finance-menu-wrap">
+              <div class="finance-menu" id="financeMenuTop">
+                <button type="button" class="btn finance-menu-btn active" data-finance-pane="titulos">Títulos</button>
+                <button type="button" class="btn finance-menu-btn" data-finance-pane="cadastros">Cadastros</button>
+                <button type="button" class="btn finance-menu-btn" data-finance-pane="carnes">Carnês</button>
+                <button type="button" class="btn finance-menu-btn" data-finance-pane="protocolos">Protocolos</button>
+                <button type="button" class="btn finance-menu-btn" data-finance-pane="caixas">Caixas</button>
+                <button type="button" class="btn finance-menu-btn" data-finance-pane="pagar">Contas a Pagar</button>
+                <button type="button" class="btn finance-menu-btn" data-finance-pane="receber">Contas a Receber</button>
+                <button type="button" class="btn finance-menu-btn" data-finance-pane="declaracoes">Declarações</button>
+                <button type="button" class="btn finance-menu-btn" data-finance-pane="acrescimos">Acréscimos / Descontos</button>
+                <button type="button" class="btn finance-menu-btn" data-finance-pane="cobranca">Cobrança</button>
+                <button type="button" class="btn finance-menu-btn" data-finance-pane="pix">Pix</button>
+              </div>
+            </nav>
+
+            <!-- Pane Títulos (atalho para a página) -->
+            <div class="finance-pane active" id="finance-pane-titulos">
+              <div class="alert alert-info mb-3">
+                A aba de Títulos agora abre como página própria. Use o botão abaixo para entrar na tela completa.
+              </div>
+              <div class="d-flex gap-2 flex-wrap">
+                <button type="button" class="btn btn-primary" onclick="safeShowModal('finance-page-titulos')">Abrir página de Títulos</button>
+                <button type="button" class="btn btn-outline-primary" onclick="safeShowModal('finance-page-caixas')">Abrir página de Caixas</button>
+              </div>
+            </div>
+
+            <!-- Pane Cadastros -->
+            <div class="finance-pane" id="finance-pane-cadastros">
+              <div class="finance-pane__head">
+                <span class="finance-pane__title">Cadastros</span>
+                <button type="button" class="btn btn-sm finance-pane-close" aria-label="Fechar" title="Voltar para Títulos"><i class="bi bi-x-lg"></i></button>
+              </div>
+              <div class="finance-subgrid">
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="fornecedor">Fornecedores</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="planocontas">Plano de Contas</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="ofxfiltro">OFX Filtros</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="pontorecebimento">Pontos de Recebimento</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="empresas">Empresas</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="funcionarios">Funcionários</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="portador">Portadores</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="gateway">Gateway de Pagamento</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="contador">Contador</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="vencimento">Vencimentos</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="feriado">Feriados</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="contrato">Contratos</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="contadigital">Conta Digital</a>
+              </div>
+            </div>
+
+            <!-- Pane Carnês -->
+            <div class="finance-pane" id="finance-pane-carnes">
+              <div class="finance-pane__head">
+                <span class="finance-pane__title">Carnês</span>
+                <button type="button" class="btn btn-sm finance-pane-close" aria-label="Fechar" title="Voltar para Títulos"><i class="bi bi-x-lg"></i></button>
+              </div>
+              <div class="finance-subgrid">
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="carne-gerar">Gerar Lote</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="carne-imprimir">Imprimir Lotes</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="carne-entrega">Confirmação de Entrega</a>
+              </div>
+            </div>
+
+            <!-- Pane Protocolos -->
+            <div class="finance-pane" id="finance-pane-protocolos">
+              <div class="finance-pane__head">
+                <span class="finance-pane__title">Protocolos</span>
+                <button type="button" class="btn btn-sm finance-pane-close" aria-label="Fechar" title="Voltar para Títulos"><i class="bi bi-x-lg"></i></button>
+              </div>
+              <div class="finance-subgrid">
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="protocolo-list">Consultar</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="protocolo-add">Gerar</a>
+              </div>
+            </div>
+
+            <!-- Pane Caixas (atalho para a página) -->
+            <div class="finance-pane" id="finance-pane-caixas">
+              <div class="alert alert-info mb-3">
+                Movimento de caixa agora abre como página própria.
+              </div>
+              <div class="d-flex gap-2 flex-wrap">
+                <button type="button" class="btn btn-primary" onclick="safeShowModal('finance-page-caixas')">Abrir página de Caixas</button>
+                <button type="button" class="btn btn-outline-primary" onclick="safeShowModal('finance-page-pagar')">Abrir página de Contas a Pagar</button>
+              </div>
+            </div>
+
+            <!-- Pane Contas a Pagar -->
+            <div class="finance-pane" id="finance-pane-pagar">
+              <div class="finance-pane__head">
+                <span class="finance-pane__title">Contas a Pagar</span>
+                <button type="button" class="btn btn-sm finance-pane-close" aria-label="Fechar" title="Voltar para Títulos"><i class="bi bi-x-lg"></i></button>
+              </div>
+              <div class="finance-subgrid">
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="pagar-add">Cadastrar</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="pagar-nfe">Cadastrar (NFe)</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="pagar-list">Histórico</a>
+              </div>
+            </div>
+
+            <!-- Pane Contas a Receber -->
+            <div class="finance-pane" id="finance-pane-receber">
+              <div class="finance-pane__head">
+                <span class="finance-pane__title">Contas a Receber</span>
+                <button type="button" class="btn btn-sm finance-pane-close" aria-label="Fechar" title="Voltar para Títulos"><i class="bi bi-x-lg"></i></button>
+              </div>
+              <p class="text-muted small mb-2">Títulos (faturas) são gerenciados na aba <strong>Títulos</strong>. Aqui: lançamentos avulsos a receber.</p>
+              <div class="finance-subgrid">
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="receber-add">Cadastrar</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="receber-list">Histórico</a>
+              </div>
+            </div>
+
+            <!-- Pane Declarações -->
+            <div class="finance-pane" id="finance-pane-declaracoes">
+              <div class="finance-pane__head">
+                <span class="finance-pane__title">Declarações</span>
+                <button type="button" class="btn btn-sm finance-pane-close" aria-label="Fechar" title="Voltar para Títulos"><i class="bi bi-x-lg"></i></button>
+              </div>
+              <div class="finance-subgrid">
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="declaracao-quitacao">Quitação</a>
+              </div>
+            </div>
+
+            <!-- Pane Acréscimos / Descontos -->
+            <div class="finance-pane" id="finance-pane-acrescimos">
+              <div class="finance-pane__head">
+                <span class="finance-pane__title">Acréscimos / Descontos em Lote</span>
+                <button type="button" class="btn btn-sm finance-pane-close" aria-label="Fechar" title="Voltar para Títulos"><i class="bi bi-x-lg"></i></button>
+              </div>
+              <div class="finance-subgrid">
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="ad-lote">Títulos a Gerar</a>
+              </div>
+            </div>
+
+            <!-- Pane Cobrança -->
+            <div class="finance-pane" id="finance-pane-cobranca">
+              <div class="finance-pane__head">
+                <span class="finance-pane__title">Cobrança</span>
+                <button type="button" class="btn btn-sm finance-pane-close" aria-label="Fechar" title="Voltar para Títulos"><i class="bi bi-x-lg"></i></button>
+              </div>
+              <div class="finance-subgrid">
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="cobranca-atraso">Atraso</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="cobranca-lembrador">Lembrador Cobrança</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="cobranca-spc">SPC/Serasa</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="cobranca-sms">SMS Cobrança</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="cobranca-email">Email Cobrança</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="cobranca-cartas">Cartas de Cobrança</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="cobranca-recorrente">Rotina de Cobrança Recorrente</a>
+              </div>
+            </div>
+
+            <!-- Pane Pix -->
+            <div class="finance-pane" id="finance-pane-pix">
+              <div class="finance-pane__head">
+                <span class="finance-pane__title">Pix</span>
+                <button type="button" class="btn btn-sm finance-pane-close" aria-label="Fechar" title="Voltar para Títulos"><i class="bi bi-x-lg"></i></button>
+              </div>
+              <div class="finance-subgrid">
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="pix-e2id">Consulta ID Transação</a>
+                <a href="#" class="list-group-item list-group-item-action finance-sub-item" data-finance-action="pix-emv">Consulta EMV (QRCode)</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>

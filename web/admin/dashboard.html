@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Painel do dono do sistema | Multi Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <link href="/assets/css/dashboard.css" rel="stylesheet" />
+  <style>
+    /* Estilos específicos do Admin SaaS (tenants, modal) — layout base em dashboard.css */
+    .saas-tenants { }
+    .saas-tenants__toolbar { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
+    .saas-tenants__search { position: relative; max-width: 280px; }
+    .saas-tenants__search .bi-search { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none; }
+    .saas-tenants__search .form-control { padding-left: 2rem; border-radius: 8px; font-size: 0.9rem; }
+    .saas-tenants__table-wrap { border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+    .saas-tenants__table { font-size: 0.875rem; margin: 0; }
+    .saas-tenants__table thead th { background: #f8fafc; font-weight: 600; color: #475569; padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; }
+    .saas-tenants__table tbody td { padding: 0.75rem 1rem; vertical-align: middle; border-bottom: 1px solid #f1f5f9; }
+    .saas-tenants__table tbody tr:hover { background: #f8fafc; }
+    .saas-tenants__table tbody tr:last-child td { border-bottom: 0; }
+    .saas-tenants__empty { text-align: center; padding: 2.5rem 1.5rem; color: #64748b; }
+    .saas-tenants__empty .bi-building { font-size: 2.5rem; opacity: 0.4; margin-bottom: 0.75rem; }
+    /* Modal Gerenciar cliente */
+    .tenant-modal__header { background: linear-gradient(135deg, #0a2a4a 0%, #0d3a5c 100%); color: #fff; padding: 1.25rem 1.5rem; margin: -1rem -1rem 1rem -1rem; border-radius: 0.5rem 0.5rem 0 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; }
+    .tenant-modal__title { font-size: 1.2rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem; }
+    .tenant-modal__badge { font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 6px; }
+    .tenant-modal__badge--active { background: rgba(34,197,94,0.25); color: #dcfce7; }
+    .tenant-modal__badge--suspended { background: rgba(234,179,8,0.3); color: #fef9c3; }
+    .tenant-modal__badge--trial { background: rgba(59,130,246,0.3); color: #bfdbfe; }
+    .tenant-modal__badge--cancelled { background: rgba(100,116,139,0.4); color: #cbd5e1; }
+    .tenant-modal__section { background: #f8fafc; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1rem; border: 1px solid #e2e8f0; }
+    .tenant-modal__section:last-child { margin-bottom: 0; }
+    .tenant-modal__section-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #0d3a5c; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem; }
+    .tenant-modal__section-title .bi { font-size: 0.95rem; }
+    .tenant-modal__slug-wrap { display: flex; align-items: center; gap: 0.5rem; }
+    .tenant-modal__slug-wrap .form-control { font-family: ui-monospace, monospace; font-size: 0.85rem; }
+    .tenant-modal__users-table { font-size: 0.85rem; margin: 0; max-height: 220px; overflow-y: auto; }
+    .tenant-modal__users-table th { background: #f1f5f9; font-weight: 600; color: #475569; padding: 0.5rem 0.75rem; }
+    .tenant-modal__users-table td { padding: 0.5rem 0.75rem; vertical-align: middle; }
+    .tenant-modal__actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem; }
+    @media (max-width: 767px) { .admin-sidebar { width: 100%; } .admin-dash { flex-direction: column; } }
+  </style>
+  <!-- Design system: painéis (admin/portal) usam /assets/css/dashboard.css -->
+</head>
+<body class="admin-dash">
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar__logo" id="adminSidebarLogo"><i class="bi bi-shield-lock"></i> Painel do dono do sistema</div>
+    <nav class="admin-sidebar__nav">
+      <a href="#" class="active" data-tab="overview"><i class="bi bi-grid"></i> Visão geral</a>
+      <a href="#" data-tab="tenants" id="navTabTenants"><i class="bi bi-building"></i> Esta instalação</a>
+      <a href="#" data-tab="radius"><i class="bi bi-wifi"></i> RADIUS</a>
+      <a href="#" data-tab="nas"><i class="bi bi-hdd-network"></i> Concentradores</a>
+    </nav>
+    <div class="admin-sidebar__foot">
+      <a href="/portal" target="_blank"><i class="bi bi-box-arrow-up-right"></i> Portal admin do provedor</a>
+      <a href="/" target="_blank"><i class="bi bi-box-arrow-up-right"></i> Site do provedor</a>
+      <a href="#" id="btnLogout" class="mt-2"><i class="bi bi-box-arrow-right"></i> Sair</a>
+    </div>
+  </aside>
+  <div class="admin-body">
+    <header class="admin-topbar">
+      <h1 class="admin-topbar__title" id="adminTopbarTitle">Painel do dono do sistema</h1>
+      <span class="text-muted small" id="adminTopbarSubtitle">Configuração desta instalação</span>
+    </header>
+    <main class="admin-content">
+      <div class="admin-tab active" id="tab-overview">
+        <div class="admin-metrics">
+          <div class="admin-metric">
+            <div class="admin-metric__icon admin-metric__icon--blue"><i class="bi bi-building"></i></div>
+            <div class="admin-metric__value" id="metricTenants">—</div>
+            <div class="admin-metric__label" id="metricTenantsLabel">Esta instalação</div>
+          </div>
+        </div>
+        <div class="admin-panel">
+          <div class="admin-panel__head">Resumo</div>
+          <div class="admin-panel__body">
+            <p class="text-muted mb-0" id="overviewResumoText">Aqui você acompanha esta instalação, FreeRADIUS e concentradores. O <strong>Portal admin do provedor</strong> em <a href="/portal" target="_blank">/portal</a> é acessado pelo Master e equipe (e-mail e senha). O <strong>site do provedor</strong> em <a href="/" target="_blank">/</a> é o site público (planos, assinar).</p>
+          </div>
+        </div>
+        <div class="admin-panel" id="panelProviderInfo">
+          <div class="admin-panel__head d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <span>Dados do provedor</span>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-sm btn-outline-primary d-none" id="btnEditProvider" title="Nome, slug e e-mail do Master"><i class="bi bi-pencil me-1"></i> Editar sistema</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="btnAdminProviderReload" title="Recarregar"><i class="bi bi-arrow-clockwise me-1"></i> Recarregar</button>
+              <button type="button" class="btn btn-sm btn-primary" id="btnAdminProviderSave"><i class="bi bi-check-lg me-1"></i> Salvar</button>
+            </div>
+          </div>
+          <div class="admin-panel__body">
+            <div id="providerInfoContent">
+              <p class="text-muted mb-0" id="providerInfoPlaceholder">Carregando...</p>
+              <div class="d-none" id="providerInfoGrid">
+                <div class="border-bottom pb-3 mb-3">
+                  <div class="small fw-semibold text-muted text-uppercase mb-2">Sistema (instalação)</div>
+                  <div class="row g-2">
+                    <div class="col-6 col-md-3"><strong class="small">Slug</strong><br><code id="providerInfoSlug">—</code></div>
+                    <div class="col-6 col-md-3"><strong class="small">E-mail Master</strong><br><a href="#" id="providerInfoMasterEmail" class="text-break small">—</a></div>
+                    <div class="col-6 col-md-3"><strong class="small">Portal</strong><br><a href="/portal" target="_blank" id="providerInfoPortalLink" class="small">—</a> <button type="button" class="btn btn-sm btn-outline-secondary py-0" id="btnCopyPortal" title="Copiar"><i class="bi bi-clipboard"></i></button></div>
+                    <div class="col-6 col-md-3"><strong class="small">RADIUS</strong><br><span id="providerInfoRadiusHost" class="small">—</span> <span id="providerInfoRadiusPorts" class="text-muted small"></span> <button type="button" class="btn btn-sm btn-outline-secondary py-0" id="btnCopyRadius" title="Copiar secret"><i class="bi bi-clipboard"></i></button></div>
+                  </div>
+                </div>
+                <div id="providerInfoForm" class="d-none border-bottom pb-3 mb-3">
+                  <div class="small fw-semibold text-muted text-uppercase mb-2">Editar: nome no sistema, slug e Master</div>
+                  <div class="row g-2 mb-2">
+                    <div class="col-md-4"><label class="form-label small">Nome do provedor</label><input type="text" class="form-control form-control-sm" id="editProviderName" placeholder="Ex: Tico Net" /></div>
+                    <div class="col-md-4"><label class="form-label small">Slug</label><input type="text" class="form-control form-control-sm" id="editProviderSlug" placeholder="Ex: tico" /></div>
+                    <div class="col-md-4"><label class="form-label small">E-mail do Master</label><input type="email" class="form-control form-control-sm" id="editProviderMasterEmail" placeholder="master@provedor.com" /></div>
+                  </div>
+                  <div id="providerEditError" class="alert alert-danger py-2 d-none mb-2 small"></div>
+                  <button type="button" class="btn btn-sm btn-primary me-2" id="btnSaveProvider"><i class="bi bi-check-lg me-1"></i> Salvar</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCancelEditProvider">Cancelar</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="d-none" id="providerSettingsSection">
+              <div class="small fw-semibold text-muted text-uppercase mb-2">Identidade, contato e endereço</div>
+              <div id="adminProviderFormError" class="alert alert-danger py-2 d-none mb-2"></div>
+            <div class="row g-3">
+              <div class="col-lg-6">
+                <div class="mb-2">
+                  <label class="form-label small fw-semibold">Nome fantasia</label>
+                  <input type="text" class="form-control form-control-sm" id="adminProvFantasyName" placeholder="Ex: Tico Net" />
+                </div>
+                <div class="mb-2">
+                  <label class="form-label small fw-semibold">Razão social</label>
+                  <input type="text" class="form-control form-control-sm" id="adminProvLegalName" placeholder="Ex: Tico Net LTDA" />
+                </div>
+                <div class="row g-2 mb-2">
+                  <div class="col-6">
+                    <label class="form-label small">CPF/CNPJ</label>
+                    <input type="text" class="form-control form-control-sm" id="adminProvDocument" placeholder="Somente números" />
+                  </div>
+                  <div class="col-3">
+                    <label class="form-label small">IE</label>
+                    <input type="text" class="form-control form-control-sm" id="adminProvIE" />
+                  </div>
+                  <div class="col-3">
+                    <label class="form-label small">IM</label>
+                    <input type="text" class="form-control form-control-sm" id="adminProvIM" />
+                  </div>
+                </div>
+              </div>
+              <div class="col-lg-6">
+                <div class="row g-2 mb-2">
+                  <div class="col-6">
+                    <label class="form-label small">WhatsApp</label>
+                    <input type="text" class="form-control form-control-sm" id="adminProvWhatsapp" placeholder="(00) 90000-0000" />
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label small">Telefone</label>
+                    <input type="text" class="form-control form-control-sm" id="adminProvPhone" placeholder="(00) 0000-0000" />
+                  </div>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label small">E-mail principal</label>
+                  <input type="email" class="form-control form-control-sm" id="adminProvEmail" placeholder="contato@provedor.com.br" />
+                </div>
+                <div class="mb-2">
+                  <label class="form-label small">Site / domínio</label>
+                  <input type="text" class="form-control form-control-sm" id="adminProvWebsite" placeholder="https://www.provedor.com.br" />
+                </div>
+              </div>
+            </div>
+            <div class="row g-3 mt-1">
+              <div class="col-12">
+                <label class="form-label small fw-semibold">Endereço</label>
+                <div class="row g-2">
+                  <div class="col-md-4"><input type="text" class="form-control form-control-sm" id="adminProvStreet" placeholder="Logradouro" /></div>
+                  <div class="col-md-2"><input type="text" class="form-control form-control-sm" id="adminProvNumber" placeholder="Nº" /></div>
+                  <div class="col-md-2"><input type="text" class="form-control form-control-sm" id="adminProvComplement" placeholder="Compl." /></div>
+                  <div class="col-md-2"><input type="text" class="form-control form-control-sm" id="adminProvNeighborhood" placeholder="Bairro" /></div>
+                  <div class="col-md-2"><input type="text" class="form-control form-control-sm" id="adminProvCity" placeholder="Cidade" /></div>
+                  <div class="col-md-1"><input type="text" class="form-control form-control-sm text-uppercase" id="adminProvState" placeholder="UF" maxlength="2" /></div>
+                  <div class="col-md-2"><input type="text" class="form-control form-control-sm" id="adminProvZip" placeholder="CEP" /></div>
+                </div>
+              </div>
+            </div>
+            <div class="small fw-semibold text-muted text-uppercase mb-2 mt-3">Branding e exibição</div>
+            <div class="row g-3 mt-1">
+              <div class="col-md-4">
+                <label class="form-label small">Logo do painel (URL)</label>
+                <div class="d-flex gap-1 mb-1 flex-wrap align-items-center">
+                  <input type="text" class="form-control form-control-sm flex-grow-1" id="adminProvLogoPortal" placeholder="/assets/logo-portal.svg" style="min-width:120px;" />
+                  <input type="file" class="d-none" id="adminProvLogoPortalFile" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" />
+                  <button type="button" class="btn btn-sm btn-outline-primary" id="btnAdminProvLogoPortalUpload" title="Enviar arquivo"><i class="bi bi-upload me-1"></i> Enviar</button>
+                </div>
+                <div class="admin-logo-preview-wrap" id="adminProvLogoPortalPreviewWrap" style="display:none;"><img id="adminProvLogoPortalPreview" alt="" class="admin-logo-preview" style="max-height:36px;max-width:120px;" /></div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small">Logo do site (URL)</label>
+                <div class="d-flex gap-1 mb-1 flex-wrap align-items-center">
+                  <input type="text" class="form-control form-control-sm flex-grow-1" id="adminProvLogoSite" placeholder="/assets/logo-site.svg" style="min-width:120px;" />
+                  <input type="file" class="d-none" id="adminProvLogoSiteFile" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" />
+                  <button type="button" class="btn btn-sm btn-outline-primary" id="btnAdminProvLogoSiteUpload" title="Enviar arquivo"><i class="bi bi-upload me-1"></i> Enviar</button>
+                </div>
+                <div class="admin-logo-preview-wrap" id="adminProvLogoSitePreviewWrap" style="display:none;"><img id="adminProvLogoSitePreview" alt="" class="admin-logo-preview" style="max-height:36px;max-width:120px;" /></div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small">Logo para recibos / impressão (URL)</label>
+                <input type="text" class="form-control form-control-sm" id="adminProvLogoReceipt" placeholder="/assets/logo-recibo.png" />
+                <div class="form-text small">Usado em recibos, comprovantes e faturas geradas pelo sistema.</div>
+              </div>
+            </div>
+            <div class="row g-3 mt-1">
+              <div class="col-md-2">
+                <label class="form-label small">Cor primária</label>
+                <input type="color" class="form-control form-control-color form-control-sm" id="adminProvColorPrimary" value="#0d3a5c" />
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small">Cor de destaque</label>
+                <input type="color" class="form-control form-control-color form-control-sm" id="adminProvColorAccent" value="#0b5ed7" />
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small">Nome curto</label>
+                <input type="text" class="form-control form-control-sm" id="adminProvShortName" placeholder="Ex: Multi" />
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small">Fuso horário (opcional)</label>
+                <input type="text" class="form-control form-control-sm" id="adminProvTimezone" placeholder="America/Sao_Paulo" />
+              </div>
+            </div>
+            <p class="small text-muted mt-2 mb-0">Personalização de recibos e faturas (modelos e variáveis): edite no <strong>Portal</strong> → Administração → Dados do provedor.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-tab" id="tab-tenants">
+        <div class="admin-panel">
+          <div class="admin-panel__head">
+            <span id="tenantsPanelTitle">Esta instalação</span>
+            <button type="button" class="btn btn-sm btn-primary d-none" id="btnNewTenant" data-saas-only><i class="bi bi-plus-lg me-1"></i> Novo provedor</button>
+          </div>
+          <div class="admin-panel__body saas-tenants">
+            <div class="saas-tenants__toolbar">
+              <div class="saas-tenants__search" id="tenantsSearchWrap">
+                <i class="bi bi-search"></i>
+                <input type="text" class="form-control form-control-sm" id="tenantsSearch" placeholder="Buscar por nome ou slug..." />
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-primary" id="btnLoadTenants"><i class="bi bi-arrow-clockwise me-1"></i> Atualizar</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="btnNginxSnippetAll" data-saas-only title="Snippet Nginx de todos os provedores"><i class="bi bi-file-code me-1"></i> Snippet Nginx (todos)</button>
+              <span class="text-muted small" id="tenantsCountText"></span>
+            </div>
+            <div class="saas-tenants__table-wrap">
+              <div id="outTenants">Clique em <strong>Atualizar</strong> para carregar os provedores.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-tab" id="tab-radius">
+        <div class="admin-panel">
+          <div class="admin-panel__head">
+            <span>Status do servidor RADIUS</span>
+            <button type="button" class="btn btn-sm btn-outline-warning ms-2" id="btnRadiusRestart" title="Reiniciar o serviço FreeRADIUS"><i class="bi bi-arrow-clockwise"></i> Reiniciar RADIUS</button>
+          </div>
+          <div class="admin-panel__body">
+            <div id="outRadiusStatus"><span class="spinner-border spinner-border-sm"></span> Carregando...</div>
+            <hr class="my-3" />
+            <h6 class="mb-2">Testar autenticação</h6>
+            <div class="row g-2 align-items-end">
+              <div class="col-md-2">
+                <label class="form-label small mb-0">Provedor (opcional)</label>
+                <select class="form-select form-select-sm" id="radiusTestTenant">
+                  <option value="">Global (.env)</option>
+                </select>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small mb-0">Usuário</label>
+                <input type="text" class="form-control form-control-sm" id="radiusTestUser" placeholder="usuário" />
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small mb-0">Senha</label>
+                <input type="password" class="form-control form-control-sm" id="radiusTestPass" placeholder="••••••" />
+              </div>
+              <div class="col-md-2">
+                <button type="button" class="btn btn-sm btn-outline-primary" id="btnRadiusTest">Testar</button>
+              </div>
+            </div>
+            <div id="radiusTestResult" class="mt-2 small"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-tab" id="tab-nas">
+        <div class="admin-panel">
+          <div class="admin-panel__head">
+            <span>Concentradores (NAS) por provedor</span>
+            <button type="button" class="btn btn-sm btn-primary d-none" id="btnNewNas"><i class="bi bi-plus"></i> Novo concentrador</button>
+          </div>
+          <div class="admin-panel__body">
+            <div class="mb-3">
+              <label class="form-label small">Provedor</label>
+              <select class="form-select form-select-sm" id="nasTenantSelect" style="max-width: 320px;">
+                <option value="">Selecione um provedor</option>
+              </select>
+            </div>
+            <div id="outNasList">Selecione um provedor para listar os concentradores.</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal Novo/Editar Concentrador -->
+  <div class="modal fade" id="modalNas" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalNasTitle">Novo concentrador</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="nasId" />
+          <input type="hidden" id="nasTenantId" />
+          <div class="mb-2">
+            <label class="form-label small">Nome <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" id="nasName" placeholder="Ex: NAS-BR-01" />
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">IP do NAS <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" id="nasIp" placeholder="Ex: 10.0.0.1" />
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">Descrição (opcional)</label>
+            <input type="text" class="form-control form-control-sm" id="nasDescription" placeholder="Ex: Concentrador principal" />
+          </div>
+          <div class="mb-2">
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="nasActive" checked />
+              <label class="form-check-label small" for="nasActive">Ativo</label>
+            </div>
+          </div>
+          <div id="nasFormError" class="alert alert-danger py-2 d-none small"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary btn-sm" id="btnSaveNas">Salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Gerenciar cliente (provedor) -->
+  <div class="modal fade" id="modalTenantManage" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title">Gerenciar provedor</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body pt-0">
+          <input type="hidden" id="manageTenantId" />
+          <div id="manageTenantLoading" class="text-center py-4"><span class="spinner-border spinner-border-sm me-2"></span>Carregando dados do provedor...</div>
+          <div id="manageTenantForm" class="d-none">
+            <div class="tenant-modal__header">
+              <div>
+                <h2 class="tenant-modal__title"><i class="bi bi-building"></i> <span id="manageTenantNameDisplay">—</span></h2>
+                <span id="manageTenantBadge" class="tenant-modal__badge tenant-modal__badge--active">Ativo</span>
+              </div>
+              <div class="tenant-modal__actions">
+                <a href="#" id="manageTenantPortalLink" class="btn btn-light btn-sm" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1"></i> Abrir portal</a>
+                <button type="button" class="btn btn-outline-light btn-sm" id="btnOpenDomainFromManage"><i class="bi bi-globe me-1"></i> Domínio</button>
+              </div>
+            </div>
+
+            <div class="tenant-modal__section">
+              <div class="tenant-modal__section-title"><i class="bi bi-building"></i> Dados do provedor</div>
+              <div class="row g-2 mb-2">
+                <div class="col-md-6">
+                  <label class="form-label small mb-1">Nome comercial</label>
+                  <input type="text" class="form-control form-control-sm" id="manageName" placeholder="Ex: Provedor Alfa" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small mb-1">Slug (identificador)</label>
+                  <div class="tenant-modal__slug-wrap">
+                    <input type="text" class="form-control form-control-sm" id="manageSlug" readonly />
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnCopySlug" title="Copiar slug"><i class="bi bi-clipboard"></i></button>
+                  </div>
+                </div>
+              </div>
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <label class="form-label small mb-1">Status</label>
+                  <select class="form-select form-select-sm" id="manageStatus">
+                    <option value="ACTIVE">Ativo</option>
+                    <option value="SUSPENDED">Suspenso</option>
+                    <option value="TRIAL">Trial</option>
+                    <option value="CANCELLED">Cancelado</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="tenant-modal__section">
+              <div class="tenant-modal__section-title"><i class="bi bi-graph-up-arrow"></i> Métricas do provedor</div>
+              <div class="row g-3">
+                <div class="col-md-3">
+                  <label class="form-label small mb-1">Clientes ativos</label>
+                  <div id="metricTenantCustomers" class="fw-semibold">—</div>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label small mb-1">PPPoE online</label>
+                  <div id="metricTenantPppoe" class="fw-semibold">—</div>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label small mb-1">Banda contratada</label>
+                  <div id="metricTenantBandwidth" class="fw-semibold small text-muted">—</div>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label small mb-1">Faturamento (mês)</label>
+                  <div id="metricTenantRevenue" class="fw-semibold small text-muted">—</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="tenant-modal__section">
+              <div class="tenant-modal__section-title"><i class="bi bi-globe"></i> Domínio e acesso</div>
+              <p class="small mb-2"><strong>Link do cliente (provedor):</strong> o provedor acessa o portal por um dos endereços abaixo. Envie o link ao cliente.</p>
+              <div class="mb-2">
+                <label class="form-label small mb-1 text-muted">Por path (sem DNS, mesmo IP do servidor)</label>
+                <div class="input-group input-group-sm">
+                  <input type="text" class="form-control font-monospace small" id="managePortalLinkPath" readonly />
+                  <button type="button" class="btn btn-outline-secondary" id="btnCopyPortalLinkPath" title="Copiar"><i class="bi bi-clipboard"></i></button>
+                </div>
+                <small class="text-muted">Ex.: https://191.252.210.31/ka/portal/ — site do provedor: <code id="manageSiteLinkPath" class="small">—</code></small>
+              </div>
+              <p class="small text-muted mb-2">Com domínio próprio: preencha <strong>Domínio próprio</strong> e peça para o provedor apontar o DNS (CNAME ou A) para este servidor. Acesso: <code>https://&lt;domínio&gt;/portal/</code>.</p>
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <label class="form-label small mb-1">Domínio próprio (domínio do provedor)</label>
+                  <input type="text" class="form-control form-control-sm" id="manageCustomDomain" placeholder="portal.empresa.com.br" />
+                  <small class="text-muted">Provedor aponta DNS para este servidor</small>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small mb-1">Subdomínio</label>
+                  <input type="text" class="form-control form-control-sm" id="manageSubdomain" placeholder="test01" />
+                  <small class="text-muted">slug.BASE_DOMAIN/portal/</small>
+                </div>
+              </div>
+            </div>
+
+            <div id="manageStackNativeSection" class="tenant-modal__section d-none">
+              <div class="tenant-modal__section-title"><i class="bi bi-server"></i> Instalação nativa (sem Docker)</div>
+              <p class="small mb-2 text-muted">
+                Portal, site e RADIUS rodam diretamente neste servidor (systemd: <code>multi-portal</code>, <code>freeradius-standalone</code>). PostgreSQL e FreeRADIUS instalados nativamente.
+              </p>
+              <p class="small mb-0 text-muted">
+                Para reiniciar: <code>sudo systemctl restart multi-portal</code> ou use o botão <strong>Reiniciar RADIUS</strong> na aba RADIUS deste painel. Via terminal: <code>sudo systemctl restart freeradius-standalone</code>. Logs: <code>journalctl -u multi-portal -f</code>.
+              </p>
+            </div>
+
+            <div id="manageStackDockerSection" class="tenant-modal__section">
+              <div class="tenant-modal__section-title"><i class="bi bi-hdd-stack"></i> Stack Docker (portal, site, RADIUS)</div>
+              <p class="small mb-2 text-muted">
+                Status do stack provisionado para este provedor (docker-compose em <code id="manageStackPath">—</code>).
+              </p>
+              <div class="row g-2 mb-2">
+                <div class="col-md-4">
+                  <label class="form-label small mb-1">Status do stack</label>
+                  <div id="manageStackStatus">—</div>
+                </div>
+                <div class="col-md-8">
+                  <label class="form-label small mb-1">Portas</label>
+                  <div class="small text-muted" id="manageStackPorts">—</div>
+                </div>
+              </div>
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <label class="form-label small mb-1">Banco do tenant</label>
+                  <div class="small text-muted" id="manageStackDb">—</div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small mb-1">Último provisionamento / log</label>
+                  <div class="small text-muted" id="manageStackLastLog">—</div>
+                </div>
+              </div>
+            </div>
+
+            <div id="manageStackLogsSection" class="tenant-modal__section">
+              <div class="tenant-modal__section-title"><i class="bi bi-journal-text"></i> Logs do stack</div>
+              <p class="small mb-2 text-muted">Últimos eventos dos serviços principais do stack Docker deste provedor.</p>
+              <div class="d-flex flex-wrap gap-2 mb-2">
+                <div class="btn-group btn-group-sm" role="group" aria-label="Logs do stack">
+                  <button type="button" class="btn btn-outline-secondary active" data-log-service="portal">Portal</button>
+                  <button type="button" class="btn btn-outline-secondary" data-log-service="radius">RADIUS</button>
+                  <button type="button" class="btn btn-outline-secondary" data-log-service="postgres">Postgres</button>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="btnReloadLogs"><i class="bi bi-arrow-clockwise me-1"></i> Atualizar logs</button>
+                <button type="button" class="btn btn-sm btn-outline-warning" id="btnRestartStack"><i class="bi bi-arrow-repeat me-1"></i> Reiniciar stack</button>
+                <button type="button" class="btn btn-sm btn-outline-danger" id="btnRemoveStack"><i class="bi bi-x-circle me-1"></i> Remover stack</button>
+              </div>
+              <pre id="manageStackLogs" class="small bg-white border rounded p-2" style="max-height: 220px; overflow:auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">Selecione um serviço e clique em Atualizar logs.</pre>
+            </div>
+
+            <div class="tenant-modal__section">
+              <div class="tenant-modal__section-title"><i class="bi bi-wifi"></i> RADIUS do provedor</div>
+              <p class="small mb-2 text-muted">
+                Configuração RADIUS específica deste provedor: use para cadastrar NAS (concentradores) e testar autenticação PPPoE.
+              </p>
+              <div class="row g-2 mb-2">
+                <div class="col-md-4">
+                  <label class="form-label small mb-1">Secret do RADIUS</label>
+                  <div class="input-group input-group-sm">
+                    <input type="text" class="form-control font-monospace small" id="manageRadiusSecret" value="—" readonly />
+                    <button type="button" class="btn btn-outline-secondary" id="btnCopyRadiusSecret" title="Copiar secret"><i class="bi bi-clipboard"></i></button>
+                  </div>
+                  <small class="text-muted">Use este secret no RADIUS client (MikroTik, Huawei, etc.).</small>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label small mb-1">Host e porta</label>
+                  <div class="small text-muted" id="manageRadiusHostPort">—</div>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label small mb-1">NAS-IP e porta (auth)</label>
+                  <div class="small text-muted" id="manageRadiusNasIpPort">—</div>
+                </div>
+              </div>
+              <div class="mb-2">
+                <label class="form-label small mb-1">NAS cadastradas</label>
+                <div id="manageRadiusNasList" class="small text-muted">Carregando NAS...</div>
+              </div>
+              <div class="border-top pt-2 mt-2">
+                <label class="form-label small mb-1">Teste de autenticação PPPoE</label>
+                <p class="text-muted small mb-2">Use o usuário e a senha da <strong>instalação</strong> do cliente (Portal do Provedor → Clientes → instalação). O usuário deve estar cadastrado e salvo para aparecer no RADIUS.</p>
+                <div class="row g-2 align-items-end">
+                  <div class="col-md-3">
+                    <input type="text" class="form-control form-control-sm" id="manageRadiusUser" placeholder="Usuário PPPoE" />
+                  </div>
+                  <div class="col-md-3">
+                    <input type="password" class="form-control form-control-sm" id="manageRadiusPass" placeholder="Senha PPPoE" />
+                  </div>
+                  <div class="col-md-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="btnRadiusTestTenant"><i class="bi bi-play-circle me-1"></i> Testar</button>
+                  </div>
+                  <div class="col-md-4">
+                    <div id="manageRadiusTestResult" class="small"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="tenant-modal__section">
+              <div class="tenant-modal__section-title"><i class="bi bi-people"></i> Usuários deste provedor</div>
+              <div class="table-responsive">
+                <table class="table table-sm table-hover tenant-modal__users-table">
+                  <thead><tr><th>Nome</th><th>E-mail</th><th>Tipo</th><th>Ativo</th></tr></thead>
+                  <tbody id="manageTenantUsers"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div id="manageTenantError" class="alert alert-danger py-2 d-none"></div>
+          </div>
+        </div>
+        <div class="modal-footer border-top" id="manageTenantFooter">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+          <button type="button" class="btn btn-primary btn-sm d-none" id="btnSaveTenantManage"><i class="bi bi-check-lg me-1"></i> Salvar alterações</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Gerenciar domínio do provedor -->
+  <div class="modal fade" id="modalTenantDomain" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Domínio do provedor</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="editTenantId" />
+          <p class="small text-muted mb-3">Duas formas de acesso: <strong>subdomínio</strong> (ex: test01.otyisisp.otnsoft.com.br) ou <strong>domínio próprio</strong> do provedor (ex: portal.empresa.com.br).</p>
+          <div class="mb-2">
+            <label class="form-label small">Domínio próprio (quando o cliente colocar o domínio dele)</label>
+            <input type="text" class="form-control form-control-sm" id="editCustomDomain" placeholder="Ex: portal.empresa.com.br" />
+            <small class="text-muted d-block mt-1">Preencha com o domínio que o provedor vai usar. O provedor configura no DNS dele: CNAME ou registro A apontando para o <strong>mesmo servidor</strong> onde este SaaS está. Depois acessa <code>https://portal.empresa.com.br/portal/</code> — o sistema identifica o tenant pelo domínio.</small>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">Subdomínio (padrão: slug.otyisisp.otnsoft.com.br)</label>
+            <input type="text" class="form-control form-control-sm" id="editSubdomain" placeholder="Ex: test01" />
+            <small class="text-muted">Usado quando o provedor ainda não tem domínio próprio. Acesso: <code>https://&lt;subdomínio&gt;.BASE_DOMAIN/portal/</code></small>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">Status</label>
+            <select class="form-select form-select-sm" id="editTenantStatus">
+              <option value="ACTIVE">Ativo</option>
+              <option value="SUSPENDED">Suspenso</option>
+              <option value="TRIAL">Trial</option>
+              <option value="CANCELLED">Cancelado</option>
+            </select>
+          </div>
+          <div id="tenantDomainFormError" class="alert alert-danger py-2 d-none mt-2"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary btn-sm" id="btnSaveTenantDomain"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Snippet Nginx (acesso por path, sem DNS) -->
+  <div class="modal fade" id="modalNginxSnippet" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-file-code me-1"></i> Snippet Nginx — acesso por path</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="small text-muted mb-2">Cole dentro do <code>server { }</code> do Nginx. Coloque <strong>location /slug/portal/</strong> antes de <strong>location /slug/</strong>.</p>
+          <div id="nginxSnippetNote" class="alert alert-info py-2 small d-none mb-2"></div>
+          <pre id="nginxSnippetPre" class="bg-dark text-light p-3 rounded small mb-2" style="max-height: 280px; overflow: auto; font-size: 0.8rem; white-space: pre-wrap; word-break: break-all;"></pre>
+          <button type="button" class="btn btn-outline-primary btn-sm" id="btnCopyNginxSnippet"><i class="bi bi-clipboard me-1"></i>Copiar snippet</button>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Novo Provedor -->
+  <div class="modal fade" id="modalTenant" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Novo provedor (tenant)</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div id="tenantFormFields">
+            <div class="mb-2">
+              <label class="form-label small">Nome do provedor <span class="text-danger">*</span></label>
+              <input type="text" class="form-control form-control-sm" id="tenantName" placeholder="Ex: Provedor Alfa" />
+            </div>
+            <div class="mb-2">
+              <label class="form-label small">Slug (identificador único, minúsculo, hífens) <span class="text-danger">*</span></label>
+              <input type="text" class="form-control form-control-sm" id="tenantSlug" placeholder="Ex: provedor-alfa" />
+            </div>
+            <hr class="my-3" />
+            <p class="small text-muted mb-2">Usuário Master (acesso total ao portal deste provedor):</p>
+            <div class="mb-2">
+              <label class="form-label small">Nome do Master</label>
+              <input type="text" class="form-control form-control-sm" id="masterName" placeholder="Ex: João Silva" />
+            </div>
+            <div class="mb-2">
+              <label class="form-label small">E-mail do Master <span class="text-danger">*</span></label>
+              <input type="email" class="form-control form-control-sm" id="masterEmail" placeholder="master@provedor.com" />
+            </div>
+            <div class="mb-2">
+              <label class="form-label small">Senha do Master (mín. 6 caracteres) <span class="text-danger">*</span></label>
+              <input type="password" class="form-control form-control-sm" id="masterPassword" placeholder="••••••••" autocomplete="new-password" />
+            </div>
+          </div>
+          <div id="tenantFormError" class="alert alert-danger py-2 d-none mt-2"></div>
+          <div id="tenantProvisionResult" class="d-none mt-3">
+            <div id="tenantProvisionMessage" class="alert mb-2"></div>
+            <div id="tenantProvisionUrl" class="small mb-2"></div>
+            <label class="form-label small text-muted">Log da instalação</label>
+            <pre id="tenantProvisionLog" class="bg-dark text-light p-2 rounded small mb-0" style="max-height: 220px; overflow: auto; font-size: 0.75rem; white-space: pre-wrap; word-break: break-all;"></pre>
+          </div>
+        </div>
+        <div class="modal-footer" id="modalTenantFooter">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary btn-sm" id="btnSaveTenant"><i class="bi bi-check-lg me-1"></i>Criar provedor</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Excluir provedor -->
+  <div class="modal fade" id="modalTenantDelete" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title text-danger"><i class="bi bi-trash me-1"></i> Excluir provedor</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body pt-0">
+          <p class="mb-2">Excluir o provedor <strong id="deleteTenantName">—</strong>?</p>
+          <p class="small text-muted mb-2">Isso irá: derrubar os containers Docker (postgres, portal, site, radius), remover a pasta do stack e limpar a configuração.</p>
+          <div class="form-check mb-0">
+            <input type="checkbox" class="form-check-input" id="deleteTenantHard" />
+            <label class="form-check-label small" for="deleteTenantHard">Remover também do banco (exclusão permanente — usuários, roles, NAS)</label>
+          </div>
+        </div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-danger btn-sm" id="btnConfirmTenantDelete"><i class="bi bi-trash me-1"></i> Excluir</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/assets/js/admin-dashboard.js"></script>
+</body>
+</html>

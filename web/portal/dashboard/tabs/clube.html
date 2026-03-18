@@ -1,0 +1,64 @@
+      <div class="admin-tab" id="tab-clube">
+        <!-- Configuração do conteúdo público da página /clube -->
+        <div class="admin-panel">
+          <div class="admin-panel__head">
+            <span>Conteúdo da página /clube</span>
+            <div>
+              <a href="/clube/" target="_blank" class="btn btn-sm btn-outline-secondary me-1"><i class="bi bi-box-arrow-up-right"></i> Ver página</a>
+              <button type="button" class="btn btn-sm btn-outline-primary me-1" id="btnLoadClubePage"><i class="bi bi-arrow-clockwise"></i> Carregar</button>
+              <button type="button" class="btn btn-sm btn-primary" id="btnSaveClubePage"><i class="bi bi-check-lg"></i> Salvar</button>
+            </div>
+          </div>
+          <div class="admin-panel__body" id="outClubePage">
+            <p class="text-muted mb-0">Carregando...</p>
+          </div>
+        </div>
+
+        <!-- Gestão completa do Clube: campanhas, sorteios, vencedores e stand -->
+        <div class="admin-grid mt-3">
+          <!-- Campanhas de sorteio -->
+          <div class="admin-panel">
+            <div class="admin-panel__head">
+              <span>Campanhas de sorteio</span>
+              <button type="button" class="btn btn-sm btn-primary" id="btnAddCampaign"><i class="bi bi-plus"></i> Nova campanha</button>
+            </div>
+            <div class="admin-panel__body" id="outCampaigns">Clique em Atualizar para carregar.</div>
+          </div>
+
+          <!-- Sortear (campanha ativa) -->
+          <div class="admin-panel">
+            <div class="admin-panel__head">Sortear (campanha ativa)</div>
+            <div class="admin-panel__body">
+              <div class="admin-draw-form mb-3">
+                <div>
+                  <label class="form-label small">Prêmio</label>
+                  <input type="text" class="form-control form-control-sm" id="prize" placeholder="Ex: 1 mês grátis" />
+                </div>
+                <div>
+                  <label class="form-label small">&nbsp;</label>
+                  <button type="button" class="btn btn-primary btn-sm d-block" id="btnDraw"><i class="bi bi-shuffle"></i> Sortear agora</button>
+                </div>
+              </div>
+              <div id="outDraw" class="small text-muted">O vencedor será sorteado entre os cadastros da campanha ativa.</div>
+            </div>
+          </div>
+
+          <!-- Vencedores -->
+          <div class="admin-panel">
+            <div class="admin-panel__head">
+              <span>Vencedores</span>
+              <button type="button" class="btn btn-sm btn-outline-primary" id="btnLoadWinners"><i class="bi bi-arrow-clockwise"></i> Atualizar</button>
+            </div>
+            <div class="admin-panel__body" id="outWinners">Clique em Atualizar para carregar.</div>
+          </div>
+
+          <!-- Cadastros do stand -->
+          <div class="admin-panel">
+            <div class="admin-panel__head">
+              <span>Cadastros do stand</span>
+              <button type="button" class="btn btn-sm btn-outline-primary" id="btnLoadStand"><i class="bi bi-arrow-clockwise"></i> Atualizar</button>
+            </div>
+            <div class="admin-panel__body" id="outStand">Clique em Atualizar para carregar.</div>
+          </div>
+        </div>
+      </div>

@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Planos | Oty ISP — Internet Fibra</title>
+  <script>var __BP=(function(){var p=location.pathname.replace(/\/$/,'')||'/';var m=p.match(/^\/([a-z0-9_-]+)(?:\/|$)/i);return m?('/'+m[1]+'/'):'/';})();var _b=document.createElement('base');_b.href=__BP==='/'?'/':__BP;document.head.appendChild(_b);</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body class="page-planos">
+  <div id="inc-header"></div>
+
+  <!-- Hero planos -->
+  <section class="planos-hero">
+    <div class="planos-hero__bg"></div>
+    <div class="container planos-hero__inner">
+      <div class="planos-hero__content">
+        <span class="planos-hero__badge"><i class="bi bi-lightning-charge-fill"></i> 100% Fibra</span>
+        <h1 class="planos-hero__title">Escolha sua velocidade</h1>
+        <p class="planos-hero__lead">Do básico ao 1 Giga. Todos os planos incluem Clube Multi, suporte e vencimento à sua escolha.</p>
+        <a class="btn btn-hero btn-hero--primary" href="assinar.html">
+          <span>Assinar agora</span>
+          <i class="bi bi-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <main class="container">
+    <!-- Cards de planos (carregados da API ou estáticos) -->
+    <section class="planos-grid" id="planosGrid">
+      <div class="planos-grid__item" data-plan-static>
+        <div class="plano-card">
+          <div class="plano-card__speed">
+            <span class="plano-card__number">100</span>
+            <span class="plano-card__unit">Mega</span>
+          </div>
+          <p class="plano-card__tagline">Ideal para uso básico</p>
+          <ul class="plano-card__features">
+            <li><i class="bi bi-check2-circle"></i> Streaming HD</li>
+            <li><i class="bi bi-check2-circle"></i> Home office</li>
+            <li><i class="bi bi-check2-circle"></i> Clube Multi + pontos</li>
+          </ul>
+          <a class="plano-card__cta" href="assinar.html?plano=100">Assinar 100 Mega</a>
+        </div>
+      </div>
+
+      <div class="planos-grid__item">
+        <div class="plano-card plano-card--popular">
+          <span class="plano-card__badge">Mais escolhido</span>
+          <div class="plano-card__speed">
+            <span class="plano-card__number">300</span>
+            <span class="plano-card__unit">Mega</span>
+          </div>
+          <p class="plano-card__tagline">Para famílias</p>
+          <ul class="plano-card__features">
+            <li><i class="bi bi-check2-circle"></i> Streaming 4K</li>
+            <li><i class="bi bi-check2-circle"></i> Vários dispositivos</li>
+            <li><i class="bi bi-check2-circle"></i> Clube Multi + pontos</li>
+          </ul>
+          <a class="plano-card__cta plano-card__cta--primary" href="assinar.html?plano=300">Assinar 300 Mega</a>
+        </div>
+      </div>
+
+      <div class="planos-grid__item">
+        <div class="plano-card">
+          <div class="plano-card__speed">
+            <span class="plano-card__number">500</span>
+            <span class="plano-card__unit">Mega</span>
+          </div>
+          <p class="plano-card__tagline">Alta performance</p>
+          <ul class="plano-card__features">
+            <li><i class="bi bi-check2-circle"></i> Upload melhor</li>
+            <li><i class="bi bi-check2-circle"></i> Jogos online</li>
+            <li><i class="bi bi-check2-circle"></i> Clube Multi + pontos</li>
+          </ul>
+          <a class="plano-card__cta" href="assinar.html?plano=500">Assinar 500 Mega</a>
+        </div>
+      </div>
+
+      <div class="planos-grid__item">
+        <div class="plano-card plano-card--top">
+          <span class="plano-card__badge plano-card__badge--top"><i class="bi bi-stars"></i> Top</span>
+          <div class="plano-card__speed">
+            <span class="plano-card__number">1</span>
+            <span class="plano-card__unit">Giga</span>
+          </div>
+          <p class="plano-card__tagline">Máximo desempenho</p>
+          <ul class="plano-card__features">
+            <li><i class="bi bi-check2-circle"></i> Máximo desempenho</li>
+            <li><i class="bi bi-check2-circle"></i> Conteúdo pesado</li>
+            <li><i class="bi bi-check2-circle"></i> Clube Multi + pontos</li>
+          </ul>
+          <a class="plano-card__cta" href="assinar.html?plano=1000">Assinar 1 Giga</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Add-ons / Extras -->
+    <section class="planos-extras">
+      <h2 class="planos-extras__title">Adicione ao seu plano</h2>
+      <p class="planos-extras__subtitle">Serviços extras para turbinar sua internet.</p>
+      <div class="planos-extras__grid">
+        <div class="extra-card">
+          <div class="extra-card__icon">
+            <i class="bi bi-wifi"></i>
+          </div>
+          <h3 class="extra-card__title">Wi‑Fi Premium</h3>
+          <p class="extra-card__desc">Roteador Wi‑Fi 6 + instalação premium para cobertura total.</p>
+        </div>
+        <div class="extra-card">
+          <div class="extra-card__icon extra-card__icon--green">
+            <i class="bi bi-camera-video"></i>
+          </div>
+          <h3 class="extra-card__title">Kit Segurança</h3>
+          <p class="extra-card__desc">Internet + 2 ou 4 câmeras IP para monitorar sua casa.</p>
+        </div>
+        <div class="extra-card">
+          <div class="extra-card__icon extra-card__icon--accent">
+            <i class="bi bi-controller"></i>
+          </div>
+          <h3 class="extra-card__title">Plano Gamer</h3>
+          <p class="extra-card__desc">Rota otimizada e ping melhor para jogos online.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="planos-cta">
+      <div class="planos-cta__inner">
+        <h2 class="planos-cta__title">Ainda em dúvida?</h2>
+        <p class="planos-cta__text">Fale com nossa equipe ou assine online em poucos cliques.</p>
+        <div class="planos-cta__buttons">
+          <a class="btn btn-hero btn-hero--primary" href="assinar.html">
+            <span>Assinar online</span>
+            <i class="bi bi-arrow-right"></i>
+          </a>
+          <a class="btn btn-hero btn-hero--outline planos-cta__btn-dark" href="index.html">
+            <i class="bi bi-house"></i> Voltar ao início
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="inc-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/site.js"></script>
+  <script src="assets/js/include.js"></script>
+  <script>
+    (function(){
+      var path=window.location.pathname.replace(/\/$/,'')||'/';
+      var parts=path.split('/').filter(Boolean);
+      var basePath='/';
+      if(parts.length>=1&&!parts[0].includes('.')&&!['admin','api','portal','assets'].includes(parts[0].toLowerCase())){
+        basePath='/'+parts[0]+'/';
+      }
+      var apiUrl=(basePath!=='/'?basePath:'')+'api/plans/';
+      fetch(apiUrl).then(function(r){return r.json();}).then(function(d){
+        if(!d.ok||!d.plans||!d.plans.length)return;
+        var grid=document.getElementById('planosGrid');
+        if(!grid)return;
+        var assinarBase=(basePath!=='/'?basePath:'')+'assinar.html?plano=';
+        grid.innerHTML=d.plans.map(function(p){
+          var fs=Array.isArray(p.features_json)?p.features_json:(typeof p.features_json==='string'?function(){try{return JSON.parse(p.features_json);}catch(e){return[];}}():[]);
+          var cls='plano-card';
+          if(p.badge==='popular')cls+=' plano-card--popular';
+          else if(p.badge==='top')cls+=' plano-card--top';
+          var badgeHtml='';
+          if(p.badge==='popular')badgeHtml='<span class="plano-card__badge">Mais escolhido</span>';
+          else if(p.badge==='top')badgeHtml='<span class="plano-card__badge plano-card__badge--top"><i class="bi bi-stars"></i> Top</span>';
+          var featuresHtml=fs.map(function(f){return'<li><i class="bi bi-check2-circle"></i> '+f+'</li>';}).join('');
+          var ctaCls=p.badge==='popular'?'plano-card__cta plano-card__cta--primary':'plano-card__cta';
+          return '<div class="planos-grid__item"><div class="'+cls+'">'+badgeHtml+'<div class="plano-card__speed"><span class="plano-card__number">'+p.speed_display+'</span><span class="plano-card__unit">'+p.unit+'</span></div><p class="plano-card__tagline">'+(p.tagline||'')+'</p><ul class="plano-card__features">'+featuresHtml+'</ul><a class="'+ctaCls+'" href="'+assinarBase+p.code+'">Assinar '+(p.unit==='Giga'?p.speed_display+' ':p.speed_display+' ')+p.unit+'</a></div></div>';
+        }).join('');
+      }).catch(function(){});
+    })();
+  </script>
+</body>
+</html>

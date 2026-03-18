@@ -1,0 +1,15 @@
+[Unit]
+Description=FreeRADIUS para Multi-Portal (standalone)
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+WorkingDirectory=__RADIUS_DIR__
+ExecStart=__RADIUSD_BIN__ -d __RADIUS_DIR__ -f -l stdout
+StandardOutput=journal
+StandardError=journal
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

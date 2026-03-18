@@ -1,0 +1,96 @@
+      <div class="admin-tab" id="tab-customers">
+        <div class="admin-panel isp-cadastro">
+          <div class="admin-panel__head isp-cadastro__header">
+            <div>
+              <h2 class="isp-cadastro__title"><i class="bi bi-people-fill"></i> Clientes</h2>
+              <p class="isp-cadastro__subtitle">Base de clientes instalados — consulte dados, contratos e histórico</p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap align-items-center">
+              <button type="button" class="btn btn-primary btn-sm" id="btnNewCustomer"><i class="bi bi-person-plus-fill me-1"></i> Novo cliente</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="btnLoadCustomers" title="Recarregar lista"><i class="bi bi-arrow-clockwise me-1"></i> Atualizar</button>
+            </div>
+          </div>
+          <div class="admin-panel__body">
+            <div id="customersListWrap">
+              <div class="isp-cadastro__toolbar isp-cadastro__toolbar--customers">
+                <div class="isp-cadastro__stats" id="customersStatsBar">
+                  <span id="customersCount">0 clientes</span>
+                  <span class="text-muted" aria-hidden="true">|</span>
+                  <span>Ativos: <strong id="customersActiveCount">0</strong></span>
+                  <span>Inativos: <strong id="customersInactiveCount">0</strong></span>
+                </div>
+                <select class="form-select form-select-sm isp-cadastro__filter" id="customersStatusFilter" aria-label="Filtrar por status">
+                  <option value="">Todos os status</option>
+                  <option value="1">Apenas ativos</option>
+                  <option value="0">Apenas inativos</option>
+                </select>
+                <div class="isp-cadastro__search-wrap flex-grow-1">
+                  <i class="bi bi-search" aria-hidden="true"></i>
+                  <input type="text" class="form-control form-control-sm" id="customersSearch" placeholder="Buscar por nome, WhatsApp, e-mail ou CPF…" aria-label="Buscar clientes" autocomplete="off" />
+                </div>
+              </div>
+              <div class="isp-cadastro__table-wrap">
+                <div id="outCustomers" class="isp-cadastro__empty-state isp-cadastro__empty-state--initial">
+                  <i class="bi bi-people" aria-hidden="true"></i>
+                  <p class="mb-1">Lista de clientes</p>
+                  <p class="small text-muted mb-3">A lista é carregada ao abrir esta aba. Se não aparecer, use o botão abaixo.</p>
+                  <button type="button" class="btn btn-primary btn-sm" id="btnLoadCustomersInitial"><i class="bi bi-arrow-clockwise me-1"></i> Carregar clientes</button>
+                </div>
+              </div>
+            </div>
+            <div id="customerFichaSection" class="d-none" style="background: #fafafa; border: 1px solid var(--ant-border-light); border-radius: var(--ant-radius); padding: 1.25rem; margin-top: 0;">
+              <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCustomerFichaVoltar"><i class="bi bi-arrow-left me-1"></i>Voltar à lista</button>
+                <div class="d-flex gap-2">
+                  <button type="button" class="btn btn-sm btn-outline-primary" id="btnEditCustomer"><i class="bi bi-pencil me-1"></i>Editar</button>
+                  <button type="button" class="btn btn-sm btn-warning" id="btnToggleCustomer"><i class="bi bi-pause-circle me-1"></i>Desativar</button>
+                </div>
+              </div>
+              <div id="customerFichaBody" class="admin-modal-detail" style="max-height: 70vh; overflow-y: auto;"></div>
+            </div>
+            <div id="customerEditFormSection" class="d-none" style="background: #fff; border: 1px solid var(--ant-border-light); border-radius: var(--ant-radius); padding: 1.25rem; margin-top: 1rem;">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0 fw-bold" id="customerEditFormTitle"><i class="bi bi-person-plus-fill me-2"></i>Cadastrar cliente</h6>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCustomerEditVoltar"><i class="bi bi-arrow-left me-1"></i>Voltar</button>
+              </div>
+              <input type="hidden" id="editCustomerId" />
+              <div id="editCustomerReadonlyRow" class="row g-3 mb-2 d-none">
+                <div class="col-md-3"><label class="form-label small text-muted">Código</label><input type="text" class="form-control form-control-sm" id="editCustomerCode" readonly disabled /></div>
+                <div class="col-md-3"><label class="form-label small text-muted">Data cadastro</label><input type="text" class="form-control form-control-sm" id="editCustomerCreated" readonly disabled /></div>
+                <div class="col-md-6"><label class="form-label small text-muted">Pontos / Nível</label><input type="text" class="form-control form-control-sm" id="editCustomerPointsTier" readonly disabled /></div>
+              </div>
+              <div class="edit-form-section mb-3">
+                <div class="edit-form-section__head"><i class="bi bi-person-vcard"></i> Dados cadastrais</div>
+                <div class="edit-form-section__body">
+                  <h6 class="text-primary small fw-bold mb-2"><i class="bi bi-person me-1"></i> Dados pessoais</h6>
+                  <div class="row g-3 mb-3">
+                    <div class="col-12"><label class="form-label">Nome completo <span class="text-danger">*</span></label><input type="text" class="form-control" id="editCustomerName" placeholder="Nome completo" /></div>
+                    <div class="col-md-6"><label class="form-label">CPF/CNPJ</label><input type="text" class="form-control" id="editCustomerCpf" placeholder="Somente números" maxlength="18" /></div>
+                  </div>
+                  <h6 class="text-primary small fw-bold mb-2"><i class="bi bi-geo-alt me-1"></i> Endereço</h6>
+                  <div class="row g-3 mb-3">
+                    <div class="col-md-4"><label class="form-label">Logradouro</label><input type="text" class="form-control form-control-sm" id="editAddrStreet" placeholder="Rua, avenida" /></div>
+                    <div class="col-md-2"><label class="form-label">Nº</label><input type="text" class="form-control form-control-sm" id="editAddrNumber" placeholder="Nº" /></div>
+                    <div class="col-md-3"><label class="form-label">Complemento</label><input type="text" class="form-control form-control-sm" id="editAddrComplement" placeholder="Apto, bloco" /></div>
+                    <div class="col-md-3"><label class="form-label">Bairro</label><input type="text" class="form-control form-control-sm" id="editAddrNeighborhood" placeholder="Bairro" /></div>
+                    <div class="col-md-3"><label class="form-label">Cidade</label><input type="text" class="form-control form-control-sm" id="editAddrCity" placeholder="Cidade" /></div>
+                    <div class="col-md-2"><label class="form-label">UF</label><input type="text" class="form-control form-control-sm" id="editAddrState" placeholder="UF" maxlength="2" /></div>
+                    <div class="col-md-2"><label class="form-label">CEP</label><input type="text" class="form-control form-control-sm" id="editAddrZip" placeholder="CEP" /></div>
+                  </div>
+                  <h6 class="text-primary small fw-bold mb-2"><i class="bi bi-telephone me-1"></i> Contatos</h6>
+                  <div class="row g-3">
+                    <div class="col-md-6"><label class="form-label">WhatsApp <span class="text-danger" id="editWhatsappRequired">*</span></label><input type="text" class="form-control" id="editCustomerWhatsapp" placeholder="DDD + número (ex: 11999999999)" /><small class="text-muted d-block" id="editWhatsappHint">Obrigatório; use só números com DDD</small></div>
+                    <div class="col-md-6"><label class="form-label">Email</label><input type="email" class="form-control" id="editCustomerEmail" placeholder="email@exemplo.com" /></div>
+                  </div>
+                  <input type="hidden" id="editCustomerActive" value="1" />
+                  <input type="hidden" id="editCustomerNotes" />
+                </div>
+              </div>
+              <div class="d-flex gap-2">
+                <button type="button" class="btn btn-secondary" id="btnCustomerEditCancel">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSaveCustomer"><i class="bi bi-check-lg me-1"></i>Salvar tudo</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>

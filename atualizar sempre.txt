@@ -1,0 +1,36 @@
+/var/www/otyis-isp/deploy.sh
+
+
+cd /var/www/otyis-isp
+npm run nginx-tenants:reload
+
+
+# Todos os tenants provisionados
+npm run update-tenant-radius
+
+# Só o tenant tp
+node scripts/update-tenant-radius.mjs tp
+
+# Atualizar arquivos sem reiniciar o container
+node scripts/update-tenant-radius.mjs --no-restart
+
+node scripts/update-databases.mjs
+node scripts/update-databases.mjs --tenants
+
+node scripts/update-tenant-stacks.mjs   
+npm run update-tenant-sites
+
+npm run nginx-tenants:reload
+
+
+
+Deixando o X visível nos modais que abrem ao clicar
+   
+
+teste pppoe pela vps
+
+# Dentro do container (porta 1812)
+docker exec -it radius_tp radtest teste1 123456 localhost 0 X8Q8qy8mdeeAacAr5GwLf3e0u3p5NY
+
+# Do host (porta 4003 mapeada para o tenant)
+radtest teste1 123456 127.0.0.1:4003 0 X8Q8qy8mdeeAacAr5GwLf3e0u3p5NY

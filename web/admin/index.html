@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Painel do dono do sistema | Multi Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="/assets/css/styles.css" />
+  <style>
+    .admin-root { min-height: 100vh; background: #f1f5f9; }
+    .admin-bar { background: #0a2a4a; color: #fff; padding: 0.75rem 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+    .admin-bar__title { font-weight: 700; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .admin-bar__back { color: rgba(255,255,255,0.85); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 0.35rem; }
+    .admin-bar__back:hover { color: #fff; }
+    .admin-main { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+    .admin-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; }
+    .admin-card__head { padding: 1rem 1.25rem; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: #0a2a4a; }
+    .admin-key-wrap { padding: 1rem 1.25rem; border-bottom: 1px solid #e2e8f0; }
+    .admin-key-wrap input { font-family: monospace; }
+    .admin-actions { padding: 1rem 1.25rem; }
+    .admin-actions .btn { justify-content: flex-start; gap: 0.5rem; }
+    .admin-draw { padding: 1rem 1.25rem; background: #f8fafc; border-top: 1px solid #e2e8f0; border-radius: 0 0 12px 12px; }
+    .admin-out { min-height: 200px; padding: 1.25rem; }
+    .admin-table { font-size: 0.9rem; }
+    .admin-table th { color: #64748b; font-weight: 600; }
+  </style>
+</head>
+<body class="admin-root">
+  <header class="admin-bar">
+    <span class="admin-bar__title"><i class="bi bi-shield-lock"></i> Painel do dono do sistema</span>
+    <a href="/" class="admin-bar__back"><i class="bi bi-box-arrow-left"></i> Voltar ao site</a>
+  </header>
+
+  <main class="admin-main">
+    <div class="row g-4">
+      <div class="col-lg-4">
+        <div class="admin-card">
+          <div class="admin-card__head">Acesso</div>
+          <div class="admin-key-wrap">
+            <label class="form-label small text-muted mb-1">Chave do dono do sistema (ADMIN_KEY)</label>
+            <input type="password" class="form-control form-control-sm" id="key" placeholder="Sua chave secreta" autocomplete="off" />
+          </div>
+          <div class="admin-actions">
+            <div class="d-grid gap-2">
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="btnCampaign">
+                <i class="bi bi-trophy"></i> Campanha ativa
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="btnStand">
+                <i class="bi bi-qr-code-scan"></i> Cadastros do stand
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="btnLeads">
+                <i class="bi bi-person-lines-fill"></i> Pedidos de assinatura
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="btnWinners">
+                <i class="bi bi-award"></i> Vencedores
+              </button>
+            </div>
+          </div>
+          <div class="admin-draw">
+            <label class="form-label small mb-1">Sortear (campanha ativa)</label>
+            <input type="text" class="form-control form-control-sm mb-2" id="prize" placeholder="Ex: 1 mês grátis" />
+            <button type="button" class="btn btn-primary btn-sm w-100" id="btnDraw"><i class="bi bi-shuffle"></i> Sortear agora</button>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-8">
+        <div class="admin-card">
+          <div class="admin-card__head">Resultado</div>
+          <div id="out" class="admin-out small text-muted">Use a chave acima e clique em uma ação para carregar os dados.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (function() {
+      var activeCampaign = null;
+      var KEY_STORAGE = 'multi_admin_key';
+
+      function esc(s) {
+        return String(s || '').replace(/[&<>"']/g, function(m) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+        });
+      }
+
+      function getKey() {
+        var el = document.getElementById('key');
+        return el && el.value ? el.value.trim() : '';
+      }
+
+      function saveKey(key) {
+        try { if (key) sessionStorage.setItem(KEY_STORAGE, key); } catch (e) {}
+      }
+
+      try {
+        var saved = sessionStorage.getItem(KEY_STORAGE);
+        if (saved) document.getElementById('key').value = saved;
+      } catch (e) {}
+
+      document.getElementById('key').addEventListener('change', function() {
+        saveKey(this.value.trim());
+      });
+
+      function api(path, opts) {
+        opts = opts || {};
+        var key = getKey();
+        if (!key) return Promise.reject(new Error('Informe a chave do dono do sistema.'));
+        var url = '/api/admin' + path + (path.indexOf('?') >= 0 ? '&' : '?') + 'key=' + encodeURIComponent(key);
+        return fetch(url, opts).then(function(res) {
+          return res.json().catch(function() { return {}; }).then(function(data) {
+            if (!res.ok) throw new Error(data.message || 'Erro na requisição');
+            saveKey(key);
+            return data;
+          });
+        });
+      }
+
+      function renderTable(rows, cols) {
+        if (!rows || !rows.length) return '<p class="mb-0 text-muted">Nenhum registro encontrado.</p>';
+        var thead = cols.map(function(c) { return '<th>' + esc(c.label) + '</th>'; }).join('');
+        var tbody = rows.map(function(r) {
+          return '<tr>' + cols.map(function(c) { return '<td>' + esc(r[c.key]) + '</td>'; }).join('') + '</tr>';
+        }).join('');
+        return '<div class="table-responsive"><table class="table table-sm table-hover admin-table"><thead><tr>' + thead + '</thead><tbody>' + tbody + '</tbody></table></div>';
+      }
+
+      function setOut(html) {
+        document.getElementById('out').innerHTML = html;
+      }
+
+      function loading() {
+        setOut('<div class="text-primary"><span class="spinner-border spinner-border-sm me-2"></span>Carregando...</div>');
+      }
+
+      function error(msg) {
+        setOut('<div class="alert alert-danger py-2 mb-0">' + esc(msg) + '</div>');
+      }
+
+      document.getElementById('btnCampaign').onclick = function() {
+        loading();
+        api('/raffles/active').then(function(data) {
+          activeCampaign = data.campaign;
+          if (activeCampaign) {
+            setOut('<div class="alert alert-success py-2 mb-0"><strong>Campanha ativa:</strong> ' + esc(activeCampaign.name) + ' (ID ' + esc(activeCampaign.id) + ')</div>');
+          } else {
+            setOut('<div class="alert alert-warning py-2 mb-0">Nenhuma campanha ativa no momento.</div>');
+          }
+        }).catch(error);
+      };
+
+      document.getElementById('btnStand').onclick = function() {
+        loading();
+        api('/stand').then(function(data) {
+          setOut(renderTable(data.rows, [
+            { key: 'created_at', label: 'Data' },
+            { key: 'entry_number', label: 'Número' },
+            { key: 'name', label: 'Nome' },
+            { key: 'whatsapp', label: 'WhatsApp' },
+            { key: 'campaign', label: 'Campanha' }
+          ]));
+        }).catch(error);
+      };
+
+      document.getElementById('btnLeads').onclick = function() {
+        loading();
+        api('/leads').then(function(data) {
+          setOut(renderTable(data.rows, [
+            { key: 'created_at', label: 'Data' },
+            { key: 'protocol', label: 'Protocolo' },
+            { key: 'plan_code', label: 'Plano' },
+            { key: 'customer_name', label: 'Cliente' },
+            { key: 'whatsapp', label: 'WhatsApp' },
+            { key: 'vencimento', label: 'Venc.' },
+            { key: 'status', label: 'Status' }
+          ]));
+        }).catch(error);
+      };
+
+      document.getElementById('btnWinners').onclick = function() {
+        loading();
+        api('/winners').then(function(data) {
+          setOut(renderTable(data.rows, [
+            { key: 'created_at', label: 'Data' },
+            { key: 'name', label: 'Nome' },
+            { key: 'whatsapp', label: 'WhatsApp' },
+            { key: 'campaign', label: 'Campanha' },
+            { key: 'prize', label: 'Prêmio' }
+          ]));
+        }).catch(error);
+      };
+
+      document.getElementById('btnDraw').onclick = function() {
+        setOut('<div class="text-primary"><span class="spinner-border spinner-border-sm me-2"></span>Sorteando...</div>');
+        Promise.resolve().then(function() {
+          if (!activeCampaign) return api('/raffles/active');
+          return { campaign: activeCampaign };
+        }).then(function(data) {
+          activeCampaign = data.campaign;
+          if (!activeCampaign) throw new Error('Nenhuma campanha ativa. Crie ou ative uma campanha primeiro.');
+          var prize = document.getElementById('prize').value.trim() || 'Prêmio';
+          return api('/raffles/' + activeCampaign.id + '/draw', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prize: prize })
+          });
+        }).then(function(data) {
+          var w = data.winner;
+          setOut('<div class="alert alert-success mb-0">' +
+            '<strong>Vencedor</strong><br/>' + esc(w.name) + ' — ' + esc(w.whatsapp) + '<br/>' +
+            '<strong>Campanha</strong> ' + esc(w.campaign) + '<br/>' +
+            '<strong>Prêmio</strong> ' + esc(w.prize) + '</div>');
+        }).catch(error);
+      };
+    })();
+  </script>
+</body>
+</html>

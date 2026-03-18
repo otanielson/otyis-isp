@@ -1,0 +1,110 @@
+      <div class="admin-tab" id="tab-proposals">
+        <div class="admin-panel">
+          <div class="admin-panel__head">
+            <span><i class="bi bi-file-earmark-text me-1"></i> Propostas comerciais</span>
+            <div>
+              <button type="button" class="btn btn-sm btn-outline-primary me-1" id="btnLoadProposals"><i class="bi bi-arrow-clockwise"></i> Atualizar</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary me-1" id="btnGoModelos"><i class="bi bi-layout-text-window-reverse me-1"></i> Modelos</button>
+              <button type="button" class="btn btn-sm btn-primary" id="btnNewProposal"><i class="bi bi-plus-lg me-1"></i> Nova proposta</button>
+            </div>
+          </div>
+          <div class="admin-panel__body">
+            <div id="proposalsListWrap">
+              <div id="outProposals">Clique em <strong>Atualizar</strong> para carregar.</div>
+            </div>
+            <div id="proposalFormSection" class="d-none" style="background: #fafafa; border: 1px solid var(--ant-border-light); border-radius: var(--ant-radius); padding: 1.25rem; margin-top: 1rem;">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-file-earmark-text me-2"></i>Nova proposta comercial</h6>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnProposalFormVoltar"><i class="bi bi-arrow-left me-1"></i>Voltar</button>
+              </div>
+              <input type="hidden" id="proposalId" />
+              <div class="mb-3">
+                <label class="form-label small text-muted">Modelo de proposta (opcional)</label>
+                <select class="form-select form-select-sm" id="proposalTemplateSelect">
+                  <option value="">— Selecionar modelo —</option>
+                </select>
+              </div>
+              <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                  <label class="form-label">Nome do cliente <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="proposalCustomerName" placeholder="Ex: João da Silva" />
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">WhatsApp</label>
+                  <input type="text" class="form-control" id="proposalCustomerWhatsapp" placeholder="DDD + número" />
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">ID do cliente (opcional)</label>
+                  <input type="number" class="form-control" id="proposalCustomerId" placeholder="Código interno do cliente" />
+                </div>
+              </div>
+              <div class="row g-3 mb-3">
+                <div class="col-md-5">
+                  <label class="form-label">Plano / produto</label>
+                  <select class="form-select" id="proposalPlanSelect">
+                    <option value="">— Selecione o plano —</option>
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Valor da proposta (R$)</label>
+                  <input type="number" step="0.01" class="form-control" id="proposalAmount" placeholder="0,00" />
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Válida até</label>
+                  <input type="date" class="form-control" id="proposalValidUntil" />
+                  <div class="form-text small" id="proposalValidHint"></div>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Texto / observações da proposta</label>
+                <textarea class="form-control" id="proposalNotes" rows="4" placeholder="Detalhe aqui o que está incluído na proposta, condições comerciais, fidelidade, etc."></textarea>
+              </div>
+              <div class="d-flex gap-2">
+                <button type="button" class="btn btn-secondary btn-sm" id="btnProposalCancel">Cancelar</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnSaveProposal"><i class="bi bi-check-lg me-1"></i>Salvar proposta</button>
+              </div>
+            </div>
+            <div id="modelosSection" class="d-none" style="background: #fafafa; border: 1px solid var(--ant-border-light); border-radius: var(--ant-radius); padding: 1.25rem; margin-top: 1rem;">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-layout-text-window-reverse me-2"></i>Modelos de proposta</h6>
+                <div class="d-flex gap-2">
+                  <button type="button" class="btn btn-sm btn-outline-primary" id="btnLoadModelos"><i class="bi bi-arrow-clockwise"></i> Atualizar</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" id="btnModelosVoltar"><i class="bi bi-arrow-left me-1"></i>Voltar</button>
+                </div>
+              </div>
+              <form id="formModelo" class="mb-4" style="max-width: 560px;">
+                <input type="hidden" id="modeloId" />
+                <div class="row g-3 mb-2">
+                  <div class="col-md-6">
+                    <label class="form-label small">Nome do modelo <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control form-control-sm" id="modeloName" placeholder="Ex: Residencial 300 Mega" required />
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label small">Código do plano</label>
+                    <input type="text" class="form-control form-control-sm" id="modeloPlanCode" placeholder="Ex: 300" />
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label small">Valor padrão (R$)</label>
+                    <input type="number" step="0.01" class="form-control form-control-sm" id="modeloAmount" placeholder="99,90" />
+                  </div>
+                </div>
+                <div class="row g-3 mb-2">
+                  <div class="col-md-4">
+                    <label class="form-label small">Validade padrão (dias)</label>
+                    <input type="number" class="form-control form-control-sm" id="modeloValidDays" value="15" min="1" placeholder="15" />
+                  </div>
+                  <div class="col-md-8">
+                    <label class="form-label small">Descrição / texto padrão</label>
+                    <textarea class="form-control form-control-sm" id="modeloDescription" rows="2" placeholder="Texto sugerido na proposta"></textarea>
+                  </div>
+                </div>
+                <div class="d-flex gap-2">
+                  <button type="submit" class="btn btn-primary btn-sm" id="btnSaveModelo"><i class="bi bi-check-lg me-1"></i>Salvar modelo</button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm" id="btnCancelModelo">Cancelar</button>
+                </div>
+              </form>
+              <div id="outModelos">Clique em <strong>Atualizar</strong> para carregar.</div>
+            </div>
+          </div>
+        </div>
+      </div>

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Multi Telecom — Internet, TV e mais. Planos em fibra óptica. Suporte 24h." />
+  <meta property="og:title" content="Multi Telecom — Internet 100% Fibra" />
+  <meta property="og:description" content="Planos para você e sua empresa. Suporte 24h." />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="pt_BR" />
+  <title>Multi Telecom — Internet, TV e mais</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="/assets/css/styles.css" />
+</head>
+<body class="page-home page-home--amigo">
+  <div id="inc-header"></div>
+
+  <!-- Hero oferta (estilo Amigo) — valores atualizados pela API/banco -->
+  <section class="home-hero-amigo" id="hero">
+    <div class="container">
+      <div class="home-hero-amigo__inner" id="heroOfferInner">
+        <p class="home-hero-amigo__badge">Agora incluso no seu pacote.</p>
+        <div class="home-hero-amigo__offer">
+          <span class="home-hero-amigo__speed"><span class="home-hero-amigo__number" id="heroSpeed">—</span> <span id="heroUnit">mega</span></span>
+          <span class="home-hero-amigo__price">R$ <span class="home-hero-amigo__value" id="heroPriceInt">—</span>,<span class="home-hero-amigo__cents" id="heroPriceDec">—</span></span>
+          <span class="home-hero-amigo__asterisk">*</span>
+        </div>
+        <a class="btn btn-amigo-primary" id="heroCtaLink" href="/assinar.html">Eu quero!</a>
+        <p class="home-hero-amigo__disclaimer">*Consulte condições. Valores vigentes por 12 meses.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Planos (estilo Amigo: Nós temos o plano perfeito para você!) -->
+  <section class="home-planos-amigo" id="planos">
+    <div class="container">
+      <h2 class="home-planos-amigo__title">Nós temos o plano perfeito para você!</h2>
+      <p class="home-planos-amigo__sub">Combos com serviços incríveis.</p>
+      <div class="row g-4 justify-content-center" id="homePlanosGrid">
+        <!-- Planos carregados da API (mesmos de /planos.html) -->
+        <div class="col-12 text-center py-4 text-muted home-planos-amigo__loading">Carregando planos…</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Todos os planos têm (estilo Amigo) -->
+  <section class="home-benefits-amigo">
+    <div class="container">
+      <h2 class="home-benefits-amigo__title">Todos os planos <span class="provider-name">Multi Telecom</span> têm</h2>
+      <div class="home-benefits-amigo__grid">
+        <div class="home-benefits-amigo__item">
+          <i class="bi bi-wifi"></i>
+          <span>Instalação gratuita</span>
+        </div>
+        <div class="home-benefits-amigo__item">
+          <i class="bi bi-router"></i>
+          <span>Roteador Wi‑Fi incluso</span>
+        </div>
+      </div>
+      <p class="home-benefits-amigo__disclaimer">*Sujeito à análise e prazo de permanência. Consulte ofertas na sua região.</p>
+    </div>
+  </section>
+
+  <!-- Autoatendimento Cliente (estilo Amigo) -->
+  <section class="home-auto-amigo" id="autoatendimento">
+    <div class="container">
+      <h2 class="home-auto-amigo__title">Autoatendimento Cliente <span class="provider-short-name">Multi Telecom</span></h2>
+      <div class="row g-3">
+        <div class="col-6 col-md-4 col-lg-2">
+          <a href="/cliente/index.html" class="home-auto-amigo__card">
+            <i class="bi bi-file-earmark-text"></i>
+            <span>2ª via do boleto</span>
+          </a>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+          <a href="/cliente/index.html" class="home-auto-amigo__card">
+            <i class="bi bi-speedometer2"></i>
+            <span>Teste de velocidade</span>
+          </a>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+          <a href="/cliente/index.html" class="home-auto-amigo__card">
+            <i class="bi bi-person-circle"></i>
+            <span>Área do cliente</span>
+          </a>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+          <a href="/clube/index.html" class="home-auto-amigo__card">
+            <i class="bi bi-gift"></i>
+            <span>Clube <span class="provider-short-name">Multi Telecom</span></span>
+          </a>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+          <a href="/noticias/index.html" class="home-auto-amigo__card">
+            <i class="bi bi-newspaper"></i>
+            <span>Blog <span class="provider-short-name">Multi Telecom</span></span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Blog / Notícias (estilo Amigo) -->
+  <section class="home-blog-amigo" id="noticias">
+    <div class="container">
+      <h2 class="home-blog-amigo__title">Blog <span class="provider-short-name">Multi Telecom</span></h2>
+      <p class="home-blog-amigo__sub">Dicas, informação e entretenimento</p>
+      <div class="row g-4">
+        <div class="col-md-4">
+          <a href="/noticias/post-1.html" class="home-blog-amigo__card">
+            <span class="home-blog-amigo__card-title">Como melhorar o Wi‑Fi sem trocar de plano</span>
+            <span class="home-blog-amigo__card-link">Ver mais <i class="bi bi-arrow-right"></i></span>
+          </a>
+        </div>
+        <div class="col-md-4">
+          <a href="/noticias/post-2.html" class="home-blog-amigo__card">
+            <span class="home-blog-amigo__card-title">Qual a melhor internet para streaming em 4K?</span>
+            <span class="home-blog-amigo__card-link">Ver mais <i class="bi bi-arrow-right"></i></span>
+          </a>
+        </div>
+        <div class="col-md-4">
+          <a href="/noticias/post-3.html" class="home-blog-amigo__card">
+            <span class="home-blog-amigo__card-title">Saiba como se proteger de golpes na internet</span>
+            <span class="home-blog-amigo__card-link">Ver mais <i class="bi bi-arrow-right"></i></span>
+          </a>
+        </div>
+      </div>
+      <a href="/noticias/index.html" class="home-blog-amigo__all">Ver todos os Artigos</a>
+    </div>
+  </section>
+
+  <div id="inc-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/assets/js/site.js"></script>
+  <script src="/assets/js/include.js"></script>
+  <script src="/assets/js/home.js"></script>
+</body>
+</html>

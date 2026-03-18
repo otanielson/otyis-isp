@@ -1,0 +1,45 @@
+server default {
+  namespace = radius
+  listen {
+    type = auth
+    ipaddr = *
+    port = 0
+  }
+  listen {
+    type = acct
+    ipaddr = *
+    port = 0
+  }
+  authorize {
+    preprocess
+    sql
+    # Força Auth-Type MS-CHAP quando o NAS envia MS-CHAP2 (ex.: MikroTik PPPoE)
+    if (&request:MS-CHAP2-Response) {
+      update control {
+        Auth-Type := MS-CHAP
+      }
+    }
+    mschap
+    pap
+  }
+  authenticate {
+    Auth-Type MS-CHAP {
+      mschap
+    }
+    Auth-Type PAP {
+      pap
+    }
+  }
+  post-auth {
+    sql
+  }
+  # MikroTik (e outros NAS) podem não enviar Acct-Unique-Session-Id; usa Acct-Session-Id como fallback para o SQL atualizar radacct.
+  accounting {
+    if (!&request:Acct-Unique-Session-Id) {
+      update request {
+        &Acct-Unique-Session-Id := "%{request:Acct-Session-Id}"
+      }
+    }
+    sql
+  }
+}

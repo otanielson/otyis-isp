@@ -1,0 +1,35 @@
+      <div class="admin-tab" id="tab-contracts">
+        <div class="admin-panel contract-panel">
+          <div class="admin-panel__head contract-panel__head">
+            <div class="contract-panel__title">
+              <i class="bi bi-file-earmark-check"></i>
+              Contratos e Modelos
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-light" id="btnLoadContracts">
+              <i class="bi bi-arrow-clockwise me-1"></i>Atualizar
+            </button>
+          </div>
+          <div class="admin-panel__body">
+            <div class="contract-section">
+              <div class="contract-section__head">
+                <span><i class="bi bi-file-earmark-text me-1"></i> Contratos emitidos</span>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="btnLoadContractsList"><i class="bi bi-arrow-clockwise me-1"></i>Recarregar</button>
+              </div>
+              <div class="contract-section__body">
+                <div class="contract-table-wrap">
+                  <div id="outContracts">Clique em <strong>Recarregar</strong> ou <strong>Atualizar</strong> para carregar.</div>
+                </div>
+              </div>
+            </div>
+            <div class="contract-section">
+              <div class="contract-section__head">
+                <span><i class="bi bi-file-earmark-ruled me-1"></i> Modelos de contrato</span>
+                <button type="button" class="btn btn-sm btn-primary" id="btnNewContractModel"><i class="bi bi-plus-lg me-1"></i>Novo modelo</button>
+              </div>
+              <div class="contract-section__body">
+                <div id="outContractModels"><span class="text-muted">Carregando modelos…</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>

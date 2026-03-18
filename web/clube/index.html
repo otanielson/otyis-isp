@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Clube Multi | Pontos, sorteios e benefícios</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="/assets/css/styles.css" />
+</head>
+<body class="page-clube">
+  <div id="inc-header"></div>
+
+  <!-- Hero Clube (conteúdo pode ser carregado via /api/clube/page) -->
+  <header class="clube-hero">
+    <div class="clube-hero__bg"></div>
+    <div class="container clube-hero__inner">
+      <span class="clube-hero__badge" data-clube="hero.badge"><i class="bi bi-stars"></i> Benefícios exclusivos</span>
+      <h1 class="clube-hero__title" data-clube="hero.title">Clube Multi</h1>
+      <p class="clube-hero__desc" data-clube="hero.description">Pontos, sorteios e vantagens para quem é cliente. Assine um plano e ganhe streaming, descontos e muito mais.</p>
+      <a class="btn btn-hero btn-hero--primary" href="/assinar.html" data-clube-href="hero.ctaHref" data-clube-text="hero.ctaText">
+        <span>Assinar e entrar no clube</span><i class="bi bi-arrow-right"></i>
+      </a>
+    </div>
+  </header>
+
+  <main class="container clube-main">
+    <!-- Vantagens / Streaming -->
+    <section class="clube-benefits">
+      <h2 class="clube-section__title" data-clube="benefits.sectionTitle">Vantagens do Clube Multi</h2>
+      <p class="clube-section__sub" data-clube="benefits.sectionSubtitle">Assinando um plano Multi você tem acesso a benefícios exclusivos. Confira as ofertas disponíveis.</p>
+      <div class="clube-benefits__grid" data-clube-list="benefits.items">
+        <div class="clube-benefit" data-clube-item="0">
+          <div class="clube-benefit__icon clube-benefit__icon--red"><i class="bi bi-film"></i></div>
+          <h3 class="clube-benefit__name">Netflix</h3>
+          <p class="clube-benefit__desc">1 mês grátis de Netflix ao assinar seu plano. Aproveite séries e filmes à vontade.</p>
+        </div>
+        <div class="clube-benefit" data-clube-item="1">
+          <div class="clube-benefit__icon clube-benefit__icon--purple"><i class="bi bi-tv"></i></div>
+          <h3 class="clube-benefit__name">Telecine</h3>
+          <p class="clube-benefit__desc">Acesso ao Telecine pelo Clube Multi. Filmes, séries e canais ao vivo.</p>
+        </div>
+        <div class="clube-benefit" data-clube-item="2">
+          <div class="clube-benefit__icon clube-benefit__icon--blue"><i class="bi bi-play-circle"></i></div>
+          <h3 class="clube-benefit__name">Disney+</h3>
+          <p class="clube-benefit__desc">Disney+ incluso em planos selecionados. Marvel, Star Wars, Pixar e mais.</p>
+        </div>
+        <div class="clube-benefit" data-clube-item="3">
+          <div class="clube-benefit__icon clube-benefit__icon--green"><i class="bi bi-music-note-beamed"></i></div>
+          <h3 class="clube-benefit__name">Spotify</h3>
+          <p class="clube-benefit__desc">Músicas e podcasts com benefício Spotify para clientes do Clube Multi.</p>
+        </div>
+      </div>
+      <p class="clube-benefits__note" data-clube="benefits.note">Ofertas sujeitas à disponibilidade e alteração. Consulte condições na contratação.</p>
+    </section>
+
+    <!-- Como ganhar pontos -->
+    <section class="clube-points">
+      <h2 class="clube-section__title" data-clube="points.sectionTitle">Como ganhar pontos</h2>
+      <div class="clube-points__grid" data-clube-list="points.items">
+        <div class="clube-points__item" data-clube-item="0">
+          <div class="clube-points__icon"><i class="bi bi-qr-code-scan"></i></div>
+          <h3 class="clube-points__label">Cadastro no stand</h3>
+          <p class="clube-points__value">+200 pontos</p>
+          <p class="clube-points__text">Visite nosso stand, escaneie o QR Code e ganhe pontos na hora.</p>
+        </div>
+        <div class="clube-points__item" data-clube-item="1">
+          <div class="clube-points__icon"><i class="bi bi-telephone-plus"></i></div>
+          <h3 class="clube-points__label">Assinar plano</h3>
+          <p class="clube-points__value">Bônus de pontos</p>
+          <p class="clube-points__text">Ao fechar seu plano de internet você recebe pontos de boas-vindas.</p>
+        </div>
+        <div class="clube-points__item" data-clube-item="2">
+          <div class="clube-points__icon"><i class="bi bi-calendar-check"></i></div>
+          <h3 class="clube-points__label">Pagamento em dia</h3>
+          <p class="clube-points__value">Bônus recorrente</p>
+          <p class="clube-points__text">Mantenha as contas em dia e acumule pontos todo mês.</p>
+        </div>
+        <div class="clube-points__item" data-clube-item="3">
+          <div class="clube-points__icon"><i class="bi bi-people"></i></div>
+          <h3 class="clube-points__label">Indique amigos</h3>
+          <p class="clube-points__value">Pontos por indicação</p>
+          <p class="clube-points__text">Indique alguém para a Multi e ganhe pontos quando fecharem plano.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Consultar saldo + Sorteios -->
+    <section class="clube-actions">
+      <div class="clube-actions__card clube-actions__card--consult">
+        <h3 class="clube-actions__title" data-clube="actions.consultTitle"><i class="bi bi-wallet2"></i> Consultar meu saldo</h3>
+        <p class="clube-actions__desc" data-clube="actions.consultDesc">Digite seu WhatsApp para ver seus pontos e números do sorteio.</p>
+        <div class="clube-actions__form">
+          <input type="text" id="w" class="clube-actions__input" placeholder="(00) 00000-0000" />
+          <button type="button" class="clube-actions__btn" id="btn">Consultar</button>
+        </div>
+        <div id="out" class="clube-actions__result"></div>
+      </div>
+      <div class="clube-actions__card clube-actions__card--stand">
+        <div class="clube-actions__stand-content">
+          <span class="clube-actions__stand-badge" data-clube="actions.standBadge">Eventos</span>
+          <h3 class="clube-actions__title" data-clube="actions.standTitle">Cadastro rápido no stand</h3>
+          <p class="clube-actions__desc" data-clube="actions.standDesc">Está em um evento? Escaneie o QR Code do stand, cadastre-se em segundos e ganhe 200 pontos na hora + número no sorteio.</p>
+          <a href="/clube/stand.html" class="clube-actions__link" data-clube-href="actions.standHref" data-clube-text="actions.standLinkText"><span>Ir para cadastro do stand</span> <i class="bi bi-arrow-right"></i></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA final -->
+    <section class="clube-cta">
+      <div class="clube-cta__inner">
+        <h2 class="clube-cta__title" data-clube="cta.title">Quer entrar no Clube Multi?</h2>
+        <p class="clube-cta__text" data-clube="cta.text">Assine um plano e comece a acumular pontos e benefícios hoje.</p>
+        <a href="/planos.html" class="clube-cta__btn" data-clube-href="cta.buttonHref" data-clube-text="cta.buttonText">Ver planos</a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function() {
+      function get(obj, path) {
+        var p = path.split('.');
+        for (var i = 0; i < p.length; i++) obj = obj && obj[p[i]];
+        return obj;
+      }
+      function applyConfig(config) {
+        if (!config) return;
+        document.querySelectorAll('[data-clube]').forEach(function(el) {
+          var val = get(config, el.getAttribute('data-clube'));
+          if (val != null && val !== '') el.textContent = val;
+        });
+        document.querySelectorAll('[data-clube-href]').forEach(function(el) {
+          var val = get(config, el.getAttribute('data-clube-href'));
+          if (val != null && val !== '') el.setAttribute('href', val);
+        });
+        document.querySelectorAll('[data-clube-text]').forEach(function(el) {
+          var val = get(config, el.getAttribute('data-clube-text'));
+          if (val != null && val !== '') {
+            var span = el.querySelector('span');
+            if (span) span.textContent = val; else el.textContent = val;
+          }
+        });
+        var listBen = document.querySelector('[data-clube-list="benefits.items"]');
+        if (listBen && config.benefits && config.benefits.items) {
+          config.benefits.items.forEach(function(item, i) {
+            var card = listBen.querySelector('[data-clube-item="' + i + '"]');
+            if (!card) return;
+            if (item.name) { var n = card.querySelector('.clube-benefit__name'); if (n) n.textContent = item.name; }
+            if (item.description) { var d = card.querySelector('.clube-benefit__desc'); if (d) d.textContent = item.description; }
+            if (item.iconColor) {
+              var icon = card.querySelector('.clube-benefit__icon');
+              if (icon) { icon.className = 'clube-benefit__icon clube-benefit__icon--' + item.iconColor; }
+            }
+          });
+        }
+        var listPoints = document.querySelector('[data-clube-list="points.items"]');
+        if (listPoints && config.points && config.points.items) {
+          config.points.items.forEach(function(item, i) {
+            var card = listPoints.querySelector('[data-clube-item="' + i + '"]');
+            if (!card) return;
+            if (item.label) { var l = card.querySelector('.clube-points__label'); if (l) l.textContent = item.label; }
+            if (item.value) { var v = card.querySelector('.clube-points__value'); if (v) v.textContent = item.value; }
+            if (item.text) { var t = card.querySelector('.clube-points__text'); if (t) t.textContent = item.text; }
+            if (item.icon) {
+              var ic = card.querySelector('.clube-points__icon i');
+              if (ic) { ic.className = 'bi ' + item.icon; }
+            }
+          });
+        }
+      }
+      window.__BP=(function(){var p=location.pathname.replace(/\/$/,'')||'/';var m=p.match(/^\/([a-z0-9_-]+)(?:\/|$)/i);return m?('/'+m[1]+'/'):'/';})();
+      fetch((window.__BP==='/'?'/api/clube/page':window.__BP+'api/clube/page')).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.config) applyConfig(data.config);
+      }).catch(function() {});
+    })();
+  </script>
+  <script>
+    (function() {
+      const btn = document.getElementById('btn');
+      const out = document.getElementById('out');
+      if (!btn || !out) return;
+      btn.addEventListener('click', async function() {
+        const w = document.getElementById('w').value.trim();
+        out.innerHTML = '<div class="clube-result clube-result--loading">Carregando...</div>';
+        try {
+          const res = await fetch((window.__BP==='/'?'/api/clube/me':window.__BP+'api/clube/me')+'?whatsapp='+encodeURIComponent(w));
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || 'Erro');
+          const entries = (data.raffleEntries || []).slice(0, 10);
+          out.innerHTML = `
+            <div class="clube-result clube-result--success">
+              <div class="clube-result__header">
+                <div>
+                  <strong class="clube-result__name">${data.customer.name || 'Cliente'}</strong>
+                  <div class="clube-result__whatsapp">${data.customer.whatsapp}</div>
+                </div>
+                <div class="clube-result__points">
+                  <span class="clube-result__points-value">${data.loyalty.pointsBalance}</span> pts
+                </div>
+              </div>
+              <div class="clube-result__tier">Nível ${data.loyalty.tier}</div>
+              <hr class="clube-result__hr" />
+              <div class="clube-result__label">Meus números no sorteio</div>
+              <ul class="clube-result__list">
+                ${entries.length ? entries.map(function(e) { return '<li>' + e.entry_number + ' — ' + e.campaign_name + '</li>'; }).join('') : '<li>Nenhum número ainda. Cadastre-se no stand!</li>'}
+              </ul>
+            </div>
+          `;
+        } catch (e) {
+          out.innerHTML = '<div class="clube-result clube-result--error">' + e.message + '</div>';
+        }
+      });
+    })();
+  </script>
+
+  <div id="inc-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/assets/js/site.js"></script>
+  <script src="/assets/js/include.js"></script>
+</body>
+</html>

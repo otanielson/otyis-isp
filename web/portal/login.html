@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login | Portal do Provedor</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <link href="/assets/css/dashboard.css" rel="stylesheet" />
+  <style>
+    body { min-height: 100vh; background: var(--ant-bg); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .login-card { max-width: 400px; width: 100%; background: var(--ant-bg-container); border-radius: var(--ant-radius); box-shadow: var(--ant-shadow); border: 1px solid var(--ant-border-light); overflow: hidden; }
+    .login-card__header { background: #fafafa; padding: 2rem; text-align: center; border-bottom: 1px solid var(--ant-border-light); }
+    .login-card__header i { font-size: 2.5rem; color: var(--ant-primary); }
+    .login-card__title { font-size: 1.5rem; font-weight: 600; color: var(--ant-text); margin-top: 0.5rem; }
+    .login-card__body { padding: 2rem; }
+    .login-card__back { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--ant-text-secondary); text-decoration: none; font-size: 0.9rem; margin-top: 1rem; }
+    .login-card__back:hover { color: var(--ant-primary); }
+    .login-card__body .btn-primary { background: var(--ant-primary) !important; border-color: var(--ant-primary) !important; }
+    .login-card__body .btn-primary:hover { background: var(--ant-primary-hover) !important; border-color: var(--ant-primary-hover) !important; }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <div class="login-card__header">
+      <i class="bi bi-router"></i>
+      <h1 class="login-card__title">Portal do Provedor</h1>
+      <p class="text-muted small mb-0">Use o e-mail e a senha do Master. O provedor deve ter sido criado no Admin do SaaS (<a href="/admin" class="text-decoration-none">/admin</a>).</p>
+    </div>
+    <div class="login-card__body">
+      <form id="loginForm" autocomplete="off">
+        <label class="form-label fw-semibold">E-mail</label>
+        <input type="email" class="form-control form-control-lg mb-2" id="email" placeholder="seu@email.com" required autocomplete="email" />
+        <label class="form-label fw-semibold">Senha</label>
+        <input type="password" class="form-control form-control-lg" id="password" placeholder="••••••••" required autocomplete="current-password" />
+        <div id="loginError" class="alert alert-danger mt-2 py-2 d-none"></div>
+        <button type="submit" class="btn btn-primary btn-lg w-100 mt-3" id="btnLogin">
+          <span id="btnText">Entrar</span>
+          <span id="btnSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+        </button>
+      </form>
+      <a href="/" class="login-card__back" id="backToSite"><i class="bi bi-arrow-left"></i> Voltar ao site</a>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      var TOKEN_KEY = 'portal_provedor_token';
+      var form = document.getElementById('loginForm');
+      var emailInput = document.getElementById('email');
+      var passwordInput = document.getElementById('password');
+      var errorEl = document.getElementById('loginError');
+      var btnText = document.getElementById('btnText');
+      var btnSpinner = document.getElementById('btnSpinner');
+
+      function showError(msg) {
+        errorEl.textContent = msg;
+        errorEl.classList.remove('d-none');
+      }
+      function hideError() {
+        errorEl.classList.add('d-none');
+      }
+
+      var backLink = document.getElementById('backToSite');
+      if (backLink) backLink.href = (window.__ASSETS_BASE__ || '') || '/';
+
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        hideError();
+        var email = emailInput.value.trim();
+        var password = passwordInput.value;
+        if (!email || !password) {
+          showError('Preencha e-mail e senha.');
+          return;
+        }
+
+        btnText.classList.add('d-none');
+        btnSpinner.classList.remove('d-none');
+        emailInput.disabled = true;
+        passwordInput.disabled = true;
+
+        var apiBase = window.__API_BASE__ || '/api';
+        fetch(apiBase + '/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, password: password })
+        })
+          .then(function(res) {
+            var ct = (res.headers.get('Content-Type') || '').toLowerCase();
+            if (!ct.includes('application/json')) {
+              return res.text().then(function(t) {
+                throw new Error('Servidor retornou HTML em vez de JSON. Verifique se o Nginx encaminha ' + (apiBase + '/auth/login') + ' para o container do provedor e se npm run nginx-tenants foi executado.');
+              });
+            }
+            return res.json().then(function(d) { return { ok: res.ok, data: d }; });
+          })
+          .then(function(r) {
+            if (!r.ok) {
+              var msg = r.data && r.data.error;
+              throw new Error(typeof msg === 'string' ? msg : 'E-mail ou senha incorretos.');
+            }
+                        if (r.data.token) localStorage.setItem(TOKEN_KEY, r.data.token);
+                        var portalBase = window.__PORTAL_BASE__ || '/portal';
+                        // Após login, ir para o painel geral do portal
+                        window.location.href = portalBase + '/dashboard';
+          })
+          .catch(function(err) {
+            showError(err.message || 'Erro ao entrar. Verifique e-mail e senha.');
+            btnText.classList.remove('d-none');
+            btnSpinner.classList.add('d-none');
+            emailInput.disabled = false;
+            passwordInput.disabled = false;
+          });
+      });
+    })();
+  </script>
+</body>
+</html>
+

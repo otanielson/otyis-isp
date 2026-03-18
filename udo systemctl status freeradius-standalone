@@ -1,0 +1,8 @@
+● multi-portal.service - Multi-Portal (Provedor — Portal Admin + Site)
+     Loaded: loaded (/etc/systemd/system/multi-portal.service; enabled; vendor preset: enabled)
+     Active: activating (auto-restart) (Result: exit-code) since Sun 2026-03-08 00:28:04 -03; 2s ago
+    Process: 3195323 ExecStart=/usr/bin/node /var/www/otyis-isp/dist/server.js [0;1;31m(code=exited, status=1/FAILURE)[0m
+   Main PID: 3195323 (code=exited, status=1/FAILURE)
+
+Mar 08 00:28:04 otnsoft.vps-kinghost.net systemd[1]: [0;1;39m[0;1;31m[0;1;39mmulti-portal.service: Main process exited, code=exited, status=1/FAILURE[0m
+Mar 08 00:28:04 otnsoft.vps-kinghost.net systemd[1]: [0;1;38;5;185m[0;1;39m[0;1;38;5;185mmulti-portal.service: Failed with result 'exit-code'.[0m

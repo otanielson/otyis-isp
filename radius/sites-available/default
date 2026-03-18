@@ -1,0 +1,29 @@
+server default {
+  namespace = radius
+  listen {
+    type = auth
+    ipaddr = *
+    port = 0
+  }
+  listen {
+    type = acct
+    ipaddr = *
+    port = 0
+  }
+  authorize {
+    preprocess
+    sql
+    pap
+  }
+  authenticate {
+    Auth-Type PAP {
+      pap
+    }
+  }
+  post-auth {
+    sql
+  }
+  accounting {
+    sql
+  }
+}

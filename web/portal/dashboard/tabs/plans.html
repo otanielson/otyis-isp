@@ -1,0 +1,52 @@
+      <div class="admin-tab" id="tab-plans">
+        <div class="admin-panel">
+          <div class="admin-panel__head">
+            <span>Planos de internet</span>
+            <div>
+              <button type="button" class="btn btn-sm btn-outline-warning me-1" id="btnBlockOverdue" title="Bloqueia clientes inadimplentes (aplica faixa reduzida no RADIUS)"><i class="bi bi-shield-lock"></i> Executar bloqueio</button>
+              <button type="button" class="btn btn-sm btn-outline-success me-1" id="btnUnblockPaid" title="Desbloqueia clientes em dia (volta velocidade do plano no RADIUS)"><i class="bi bi-shield-check"></i> Desbloquear quitados</button>
+              <button type="button" class="btn btn-sm btn-primary" id="btnAddPlan"><i class="bi bi-plus"></i> Novo plano</button>
+            </div>
+          </div>
+          <div class="admin-panel__body" id="outPlans">Carregando...</div>
+          <div class="admin-panel__body border-top bg-light p-3" id="planFormSection" style="display:none">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="mb-0 fw-bold" id="modalPlanTitle">Novo plano</h6>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="btnPlanFormVoltar"><i class="bi bi-arrow-left me-1"></i>Voltar à lista</button>
+            </div>
+            <input type="hidden" id="planId" />
+            <div class="row g-2">
+              <div class="col-md-4"><label class="form-label small">Código</label><input type="text" class="form-control form-control-sm" id="planCode" placeholder="100, 300, 1000" /></div>
+              <div class="col-md-4"><label class="form-label small">Exibição velocidade</label><input type="text" class="form-control form-control-sm" id="planSpeedDisplay" placeholder="100 ou 1" /></div>
+              <div class="col-md-4"><label class="form-label small">Unidade</label><select class="form-select form-select-sm" id="planUnit"><option value="Mega">Mega</option><option value="Giga">Giga</option></select></div>
+            </div>
+            <div class="row g-2 mt-1">
+              <div class="col-md-4"><label class="form-label small">Download (Mbps)</label><input type="number" class="form-control form-control-sm" id="planSpeedDownload" min="0" placeholder="100" /></div>
+              <div class="col-md-4"><label class="form-label small">Upload (Mbps)</label><input type="number" class="form-control form-control-sm" id="planSpeedUpload" min="0" placeholder="50" /></div>
+              <div class="col-md-4"><label class="form-label small">Preço (R$)</label><input type="number" step="0.01" min="0" class="form-control form-control-sm" id="planPrice" placeholder="99.90" /></div>
+            </div>
+            <div class="mb-2 mt-2"><label class="form-label small">Concentradores (NAS)</label><div id="planNasCheckboxes" class="d-flex flex-wrap gap-2"></div></div>
+            <div class="mb-2"><label class="form-label small">Tagline</label><input type="text" class="form-control form-control-sm" id="planTagline" placeholder="Ideal para uso básico" /></div>
+            <div class="mb-2"><label class="form-label small">Benefícios (um por linha)</label><textarea class="form-control form-control-sm" id="planFeatures" rows="2"></textarea></div>
+            <div class="mb-2"><label class="form-label small">Destaque</label><select class="form-select form-select-sm" id="planBadge"><option value="">Nenhum</option><option value="popular">Mais escolhido</option><option value="top">Top</option></select></div>
+            <hr class="my-3" />
+            <h6 class="text-primary small fw-bold mb-2"><i class="bi bi-shield-lock me-1"></i> Bloqueio automático</h6>
+            <div class="row g-2">
+              <div class="col-md-6"><div class="form-check"><input type="checkbox" class="form-check-input" id="planBlockAuto" /><label class="form-check-label small" for="planBlockAuto">Habilitar bloqueio automático</label></div></div>
+              <div class="col-md-3"><label class="form-label small">Dias após vencimento</label><input type="number" class="form-control form-control-sm" id="planBlockDays" min="1" max="90" value="5" /></div>
+              <div class="col-md-3"><label class="form-label small">Grupo RADIUS ao bloquear</label><input type="text" class="form-control form-control-sm" id="planBlockRadiusGroup" placeholder="bloqueado" /></div>
+            </div>
+            <hr class="my-3" />
+            <h6 class="text-primary small fw-bold mb-2"><i class="bi bi-database me-1"></i> Franquia e RADIUS</h6>
+            <div class="row g-2">
+              <div class="col-md-3"><label class="form-label small">Franquia (GB/mês)</label><input type="number" class="form-control form-control-sm" id="planQuotaGb" min="0" step="0.01" /></div>
+              <div class="col-md-3"><label class="form-label small">Período</label><select class="form-select form-select-sm" id="planQuotaPeriod"><option value="monthly">Mensal</option><option value="weekly">Semanal</option><option value="daily">Diário</option></select></div>
+              <div class="col-md-3"><label class="form-label small">Grupo ao exceder</label><input type="text" class="form-control form-control-sm" id="planQuotaExceededGroup" placeholder="reduzido_10m" /></div>
+              <div class="col-md-3"><label class="form-label small">Framed-Pool</label><input type="text" class="form-control form-control-sm" id="planFramedPool" placeholder="cgnat" /></div>
+              <div class="col-md-3"><label class="form-label small">VLAN ID</label><input type="number" class="form-control form-control-sm" id="planVlanId" min="0" /></div>
+              <div class="col-md-9"><label class="form-label small">URL redirect ao bloquear</label><input type="url" class="form-control form-control-sm" id="planBlockRedirectUrl" /></div>
+            </div>
+            <div class="mt-3"><button type="button" class="btn btn-primary btn-sm" id="btnSavePlan"><i class="bi bi-check-lg me-1"></i>Salvar</button></div>
+          </div>
+        </div>
+      </div>

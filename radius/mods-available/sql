@@ -1,0 +1,18 @@
+sql {
+  dialect = "postgresql"
+  driver = "rlm_sql_postgresql"
+  radius_db = "dbname=tico host=127.0.0.1 port=5432 user=tico password=13022013"
+  client_table = "nas"
+  acct_table1 = "radacct"
+  acct_table2 = "radacct"
+  postauth_table = "radpostauth"
+  authcheck_table = "radcheck"
+  groupcheck_table = "radgroupcheck"
+  authreply_table = "radreply"
+  groupreply_table = "radgroupreply"
+  usergroup_table = "radusergroup"
+  group_attribute = "SQL-Group"
+  $INCLUDE ${modconfdir}/sql/driver/postgresql
+  $INCLUDE ${modconfdir}/sql/main/postgresql/queries.conf
+  pool { start = 0; min = 1; max = 32; }
+}

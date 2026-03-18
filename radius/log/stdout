@@ -1,0 +1,8 @@
+Sun Mar  8 01:14:18 2026 : Info: Starting - reading configuration files ...
+Sun Mar  8 01:14:18 2026 : Info: Debugger not attached
+Sun Mar  8 01:14:18 2026 : Info: systemd watchdog is disabled
+Sun Mar  8 01:14:18 2026 : Info: rlm_sql (sql): Driver rlm_sql_postgresql (module rlm_sql_postgresql) loaded and linked
+Sun Mar  8 01:14:18 2026 : Info: rlm_sql (sql): Attempting to connect to database "dbname=tico host=127.0.0.1 port=5432 user=tico password=13022013"
+Sun Mar  8 01:14:18 2026 : Info: Loaded virtual server <default>
+Sun Mar  8 01:14:18 2026 : Info: Loaded virtual server default
+Sun Mar  8 01:14:18 2026 : Info: Ready to process requests
