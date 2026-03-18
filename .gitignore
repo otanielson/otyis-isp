@@ -8,4 +8,5 @@ logs/
 uploads/
 tmp/
 .cache/
+.npm-cache/
 coverage/

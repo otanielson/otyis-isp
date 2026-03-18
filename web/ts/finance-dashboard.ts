@@ -386,10 +386,6 @@ function createFinanceModule(deps: PortalFinanceDeps): { loadFinance: () => void
     pix: 'finance-page-pix',
   };
 
-  function switchToTitulos(): void {
-    openFinancePage('titulos');
-  }
-
   let financeWired = false;
   function openFinancePage(paneId: string): HTMLElement | null {
     const pageId = financePageMap[paneId];

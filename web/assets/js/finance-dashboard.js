@@ -331,9 +331,6 @@ function createFinanceModule(deps) {
         cobranca: 'finance-page-cobranca',
         pix: 'finance-page-pix',
     };
-    function switchToTitulos() {
-        openFinancePage('titulos');
-    }
     let financeWired = false;
     function openFinancePage(paneId) {
         const pageId = financePageMap[paneId];

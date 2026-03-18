@@ -121,6 +121,11 @@
         el.style.display = 'none';
         el.style.visibility = 'hidden';
     }
+    function safeOn(id, eventName, handler) {
+        var el = document.getElementById(id);
+        if (el)
+            el.addEventListener(eventName, handler);
+    }
     function api(path, opts) {
         opts = opts || {};
         var token = getToken();
@@ -228,6 +233,55 @@
         }).catch(function () { });
     }
     /** Ativa a aba pelo id e atualiza a URL (hash). Carrega o fragmento da aba se ainda não existir (evita F5). */
+    function routeSegmentToTab(segment) {
+        var routeMap = {
+            dashboard: 'overview',
+            planos: 'plans',
+            pedidos: 'leads',
+            clientes: 'customers',
+            propostas: 'proposals',
+            contratos: 'contracts',
+            suporte: 'tickets',
+            clube: 'clube',
+            financeiro: 'finance',
+            fiscal: 'fiscal',
+            estoque: 'estoque',
+            sistema: 'system',
+            administracao: 'provider',
+            'administração': 'provider',
+            grupos: 'grupos',
+            usuarios: 'usuarios',
+            'usuários': 'usuarios'
+        };
+        return routeMap[(segment || '').toLowerCase()] || 'overview';
+    }
+    function tabToRoute(tab) {
+        var tabMap = {
+            overview: '/portal/dashboard',
+            plans: '/portal/planos',
+            leads: '/portal/pedidos',
+            customers: '/portal/clientes',
+            proposals: '/portal/propostas',
+            contracts: '/portal/contratos',
+            tickets: '/portal/suporte',
+            clube: '/portal/clube',
+            finance: '/portal/financeiro',
+            fiscal: '/portal/fiscal',
+            estoque: '/portal/estoque',
+            system: '/portal/sistema',
+            provider: '/portal/administracao',
+            grupos: '/portal/grupos',
+            usuarios: '/portal/usuarios'
+        };
+        return tabMap[tab || ''] || '/portal/dashboard';
+    }
+    function navigateToTab(tab) {
+        var nextPath = tabToRoute(tab);
+        if ((window.location.pathname || '') !== nextPath) {
+            window.history.pushState({}, '', nextPath);
+        }
+        switchToTab(tab);
+    }
     function switchToTab(tab) {
         if (!tab)
             tab = 'overview';
@@ -318,22 +372,14 @@
             loadUsuarios();
     }
     /** Lê o hash (#overview, #plans, #customers/123, etc.) e ativa a aba correspondente. */
-    function applyHash() {
-        var raw = (location.hash || '').replace(/^#/, '') || 'overview';
-        // Rotas legadas simples (#service-orders, #nas)
-        if (raw === 'service-orders')
-            raw = 'tickets';
-        if (raw === 'nas') {
-            raw = 'system';
-            if (location.hash)
-                location.hash = 'system';
-        }
-        // Suporte a subrotas: ex.: customers/123, customers/new, customers/123/contracts/new
-        var parts = raw.split('/');
-        var tab = parts[0] || 'overview';
-        var rest = parts.slice(1);
+    function applyCurrentRoute() {
+        var parts = (location.pathname || '').toLowerCase().split('/').filter(Boolean);
+        var segment = parts[1] || 'dashboard';
+        var rest = parts.slice(2);
         var validTabs = ['overview', 'plans', 'leads', 'customers', 'proposals', 'contracts', 'tickets', 'campaigns', 'stand', 'winners', 'draw', 'finance', 'estoque', 'system', 'provider', 'clube', 'grupos', 'usuarios'];
-        var activeTab = validTabs.indexOf(tab) >= 0 ? tab : 'overview';
+        var activeTab = routeSegmentToTab(segment);
+        if (validTabs.indexOf(activeTab) < 0)
+            activeTab = 'overview';
         switchToTab(activeTab);
         // Lógica SPA adicional para rotas internas, hoje focada em Clientes
         if (activeTab === 'customers' && rest.length) {
@@ -357,14 +403,14 @@
             }
         }
     }
-    window.addEventListener('hashchange', applyHash);
+    var applyHash = applyCurrentRoute;
+    window.addEventListener('popstate', applyCurrentRoute);
     applyHash(); // ao carregar a página, abrir a aba do hash (ou overview)
     document.querySelectorAll('[data-tab]').forEach(function (a) {
         a.addEventListener('click', function (e) {
             e.preventDefault();
             var tab = this.getAttribute('data-tab');
-            location.hash = tab;
-            switchToTab(tab);
+            navigateToTab(tab);
         });
     });
     function loadNas() {
@@ -731,7 +777,7 @@
                 alert(err.message);
             });
         });
-    document.getElementById('btnSavePlan').addEventListener('click', function () {
+    safeOn('btnSavePlan', 'click', function () {
         var id = document.getElementById('planId').value;
         var code = document.getElementById('planCode').value.trim();
         var speedDisplay = document.getElementById('planSpeedDisplay').value.trim() || code;
@@ -785,7 +831,7 @@
             loadStats();
         }).catch(function (err) { alert(err.message); });
     });
-    document.getElementById('btnLoadLeads').addEventListener('click', function () {
+    safeOn('btnLoadLeads', 'click', function () {
         setLoading('outLeads');
         api('/leads').then(function (data) {
             var statusBadge = function (v) {
@@ -849,7 +895,7 @@
             safeShowModal('modalLead');
         }).catch(function (err) { alert(err.message); });
     }
-    document.getElementById('btnSaveLeadStatus').addEventListener('click', function () {
+    safeOn('btnSaveLeadStatus', 'click', function () {
         if (!currentLeadId)
             return;
         var statusEl = document.getElementById('leadStatusSelect');
@@ -1184,8 +1230,6 @@
         api('/proposals', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(function () {
             showProposalsListInline();
             loadProposals();
-            if (location.hash === '#proposals')
-                location.hash = 'proposals';
         }).catch(function (err) { alert(err.message); });
     }
     var serviceOrdersCache = [];
@@ -4039,7 +4083,7 @@
         bindCustomerActions();
     }
     document.getElementById('btnCustomerFichaVoltar') && document.getElementById('btnCustomerFichaVoltar').addEventListener('click', hideCustomerFicha);
-    document.getElementById('btnLoadCustomers').addEventListener('click', function () {
+    safeOn('btnLoadCustomers', 'click', function () {
         setLoading('outCustomers');
         api('/customers').then(function (data) {
             customersCache = data.rows || [];
@@ -4048,7 +4092,7 @@
             document.getElementById('outCustomers').innerHTML = '<div class="alert alert-danger py-2 mb-0">' + esc(err.message) + '</div>';
         });
     });
-    document.getElementById('btnEditCustomer').addEventListener('click', function () {
+    safeOn('btnEditCustomer', 'click', function () {
         if (currentCustomerId)
             openEditCustomer(currentCustomerId);
     });
@@ -4159,7 +4203,7 @@
         else
             hideCustomerEditForm();
     }, true);
-    document.getElementById('btnSalvarCadastroContrato').addEventListener('click', function () {
+    safeOn('btnSalvarCadastroContrato', 'click', function () {
         var customerId = document.getElementById('cadContratoCustomerId').value.trim();
         var planCode = (document.getElementById('cadContratoPlano').value || '').trim();
         var amount = parseFloat((document.getElementById('cadContratoValor').value || '0').replace(',', '.')) || 0;
@@ -4251,8 +4295,7 @@
         })
             .then(function (newContractId) {
             safeHideModal('modalCadastrarContrato');
-            location.hash = 'contracts';
-            switchToTab('contracts');
+            navigateToTab('contracts');
             loadContracts();
             if (typeof loadContractModels === 'function')
                 loadContractModels();
@@ -4291,7 +4334,7 @@
             btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Finalizar';
         });
     });
-    document.getElementById('btnSaveCustomer').addEventListener('click', function () {
+    safeOn('btnSaveCustomer', 'click', function () {
         var id = document.getElementById('editCustomerId').value;
         var name = document.getElementById('editCustomerName').value.trim();
         var whatsappRaw = (document.getElementById('editCustomerWhatsapp').value || '').trim();
@@ -4370,7 +4413,7 @@
             .then(done)
             .catch(function (err) { alert(err.message); });
     });
-    document.getElementById('btnToggleCustomer').addEventListener('click', function () {
+    safeOn('btnToggleCustomer', 'click', function () {
         if (!currentCustomerId)
             return;
         var c = customersCache.find(function (x) { return x.id == currentCustomerId; });
@@ -7058,7 +7101,7 @@
             return;
         api('/finance/carne/lots/' + lotId + '/confirm-delivery', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ all: true }) }).then(function () { loadCarneEntregaLot(); alert('Todos marcados como entregues.'); }).catch(function (err) { alert(err.message); });
     });
-    document.getElementById('btnLoadStand').addEventListener('click', function () {
+    safeOn('btnLoadStand', 'click', function () {
         setLoading('outStand');
         api('/stand').then(function (data) {
             document.getElementById('outStand').innerHTML = renderTable(data.rows, [
@@ -7072,7 +7115,7 @@
             document.getElementById('outStand').innerHTML = '<div class="alert alert-danger py-2 mb-0">' + esc(err.message) + '</div>';
         });
     });
-    document.getElementById('btnLoadWinners').addEventListener('click', function () {
+    safeOn('btnLoadWinners', 'click', function () {
         setLoading('outWinners');
         api('/winners').then(function (data) {
             document.getElementById('outWinners').innerHTML = renderTable(data.rows, [
@@ -7213,8 +7256,8 @@
             out.innerHTML = '<div class="alert alert-danger py-2 mb-0">' + esc(err.message) + '</div>';
         });
     }
-    document.getElementById('btnLoadClubePage').addEventListener('click', function () { loadClubePage(); });
-    document.getElementById('btnSaveClubePage').addEventListener('click', function () {
+    safeOn('btnLoadClubePage', 'click', function () { loadClubePage(); });
+    safeOn('btnSaveClubePage', 'click', function () {
         var body = getClubeConfigFromForm();
         api('/clube-page', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ config: body }) }).then(function () {
             alert('Página do Clube salva.');
@@ -7286,15 +7329,15 @@
             out.innerHTML = '<div class="alert alert-danger py-2 mb-0">' + esc(err.message) + '</div>';
         });
     }
-    document.getElementById('btnLoadGrupos').addEventListener('click', function () { loadGrupos(); });
-    document.getElementById('btnNewGrupo').addEventListener('click', function () {
+    safeOn('btnLoadGrupos', 'click', function () { loadGrupos(); });
+    safeOn('btnNewGrupo', 'click', function () {
         document.getElementById('grupoId').value = '';
         document.getElementById('grupoName').value = '';
         document.getElementById('modalGrupoTitle').textContent = 'Novo grupo';
         document.getElementById('grupoFormError').classList.add('d-none');
         safeShowModal('modalGrupo');
     });
-    document.getElementById('btnSaveGrupo').addEventListener('click', function () {
+    safeOn('btnSaveGrupo', 'click', function () {
         var name = (document.getElementById('grupoName').value || '').trim();
         var errEl = document.getElementById('grupoFormError');
         if (!name || name.length < 2) {
@@ -7311,7 +7354,7 @@
             errEl.classList.remove('d-none');
         });
     });
-    document.getElementById('btnSaveGrupoPermissoes').addEventListener('click', function () {
+    safeOn('btnSaveGrupoPermissoes', 'click', function () {
         var roleId = this.getAttribute('data-role-id');
         if (!roleId)
             return;
@@ -7382,8 +7425,8 @@
             out.innerHTML = '<div class="alert alert-danger py-2 mb-0">' + esc(err.message) + '</div>';
         });
     }
-    document.getElementById('btnLoadUsuarios').addEventListener('click', function () { loadUsuarios(); });
-    document.getElementById('btnNewUsuario').addEventListener('click', function () {
+    safeOn('btnLoadUsuarios', 'click', function () { loadUsuarios(); });
+    safeOn('btnNewUsuario', 'click', function () {
         document.getElementById('usuarioId').value = '';
         document.getElementById('usuarioName').value = '';
         document.getElementById('usuarioEmail').value = '';
@@ -7394,7 +7437,7 @@
         document.getElementById('usuarioFormError').classList.add('d-none');
         safeShowModal('modalUsuario');
     });
-    document.getElementById('btnSaveUsuario').addEventListener('click', function () {
+    safeOn('btnSaveUsuario', 'click', function () {
         var id = document.getElementById('usuarioId').value;
         var name = (document.getElementById('usuarioName').value || '').trim();
         var email = (document.getElementById('usuarioEmail').value || '').trim().toLowerCase();
@@ -7428,7 +7471,7 @@
             errEl.classList.remove('d-none');
         });
     });
-    document.getElementById('btnSaveUsuarioGrupos').addEventListener('click', function () {
+    safeOn('btnSaveUsuarioGrupos', 'click', function () {
         var userId = this.getAttribute('data-user-id');
         if (!userId)
             return;
@@ -7443,7 +7486,7 @@
             loadUsuarios();
         }).catch(function (err) { alert(err.message); });
     });
-    document.getElementById('btnDraw').addEventListener('click', function () {
+    safeOn('btnDraw', 'click', function () {
         var out = document.getElementById('outDraw');
         out.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sorteando...';
         Promise.resolve().then(function () {
