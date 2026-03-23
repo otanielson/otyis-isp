@@ -6,17 +6,46 @@
  */
 
 // Modais em modo SPA: sem Bootstrap JS, sem travar o body e sem backdrops separados.
+type PortalWindowWithSections = Window & { __portalPageSectionStack?: string[] };
+
+function getPageSectionStack(): string[] {
+  const sharedWindow = window as PortalWindowWithSections;
+  return sharedWindow.__portalPageSectionStack || (sharedWindow.__portalPageSectionStack = []);
+}
+
+function getActivePageSectionId(): string | null {
+  const active = document.querySelector('[data-page-section="true"].show') as HTMLElement | null;
+  return active ? active.id : null;
+}
 
 function safeShowModal(modalId: string): HTMLElement | null {
   const el = document.getElementById(modalId) as HTMLElement | null;
   if (!el) return null;
   try {
+    const isPageSection = el.getAttribute("data-page-section") === "true";
+    if (isPageSection) {
+      const activeId = getActivePageSectionId();
+      if (activeId && activeId !== modalId) {
+        getPageSectionStack().push(activeId);
+      }
+      document.querySelectorAll('[data-page-section="true"]').forEach((section) => {
+        if (section === el) return;
+        const sectionEl = section as HTMLElement;
+        sectionEl.classList.remove("show");
+        sectionEl.style.display = "none";
+        sectionEl.style.visibility = "hidden";
+        sectionEl.classList.add("d-none");
+        sectionEl.setAttribute("aria-hidden", "true");
+      });
+    }
     el.classList.add("show");
-    // CSS em dashboard.html trata `.modal.fade.show` como overlay flex full-screen
-    el.style.display = "flex";
+    el.style.display = isPageSection ? "block" : "flex";
     el.style.visibility = "visible";
-    el.style.zIndex = "1055";
-    el.setAttribute("aria-modal", "true");
+    el.style.zIndex = isPageSection ? "1" : "1055";
+    el.classList.remove("d-none");
+    if (!isPageSection) {
+      el.setAttribute("aria-modal", "true");
+    }
     el.setAttribute("aria-hidden", "false");
     return el;
   } catch {
@@ -30,9 +59,21 @@ function safeHideModal(modalId: string): void {
   if (el.contains(document.activeElement) && document.activeElement && typeof (document.activeElement as HTMLElement).blur === "function") {
     (document.activeElement as HTMLElement).blur();
   }
+  const isPageSection = el.getAttribute("data-page-section") === "true";
   el.classList.remove("show");
   el.style.display = "none";
   el.style.visibility = "hidden";
+  if (isPageSection) {
+    el.classList.add("d-none");
+    const previousId = getPageSectionStack().pop();
+    if (previousId) {
+      const previous = document.getElementById(previousId) as HTMLElement | null;
+      if (previous) {
+        safeShowModal(previousId);
+        return;
+      }
+    }
+  }
   el.setAttribute("aria-hidden", "true");
 }
 

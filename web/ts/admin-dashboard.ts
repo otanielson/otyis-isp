@@ -831,6 +831,50 @@
     });
   }
 
+  function doHotspotCertUpload(fileInputId, targetInputId, buttonId) {
+    var fileInput = byId(fileInputId);
+    var targetInput = byId(targetInputId);
+    var btn = byId(buttonId);
+    var errEl = byId('wifiModelsError');
+
+    if (!fileInput || !targetInput || !fileInput.files || !fileInput.files.length) return;
+
+    var file = fileInput.files[0];
+    var formData = new FormData();
+    formData.append('file', file);
+
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    }
+
+    fetch('/api/admin/upload-hotspot-cert', {
+      method: 'POST',
+      body: formData,
+      credentials: 'same-origin'
+    }).then(function(r) {
+      return r.json().then(function(data) {
+        if (!r.ok) throw new Error(data.message || 'Falha no upload');
+        return data;
+      });
+    }).then(function(data) {
+      targetInput.value = data.absolute_path || data.relative_path || '';
+      fileInput.value = '';
+      if (errEl) errEl.classList.add('d-none');
+      renderWifiPreviewFromEditor();
+    }).catch(function(err) {
+      if (errEl) {
+        errEl.textContent = err.message || 'Falha no upload do certificado.';
+        errEl.classList.remove('d-none');
+      }
+    }).finally(function() {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = 'Enviar';
+      }
+    });
+  }
+
   function loadAdminProviderSettings() {
     var errEl = byId('adminProviderFormError');
     if (errEl) {
@@ -1127,6 +1171,7 @@
         loadAdminProviderSettings();
       }
       else if (tab === 'radius') loadRadiusStatus();
+      else if (tab === 'wifi-models') loadWifiModels();
       else if (tab === 'nas') {
         loadNasTenantOptions();
         loadNasListForSelected();
@@ -1813,6 +1858,631 @@
     }).catch(function(err) {
       resultEl.innerHTML = '<span class="text-danger">' + esc(err.message) + '</span>';
     });
+  });
+
+  var wifiModelsCache = [];
+  var wifiModelLastGeneratedFileName = 'mikrotik-hotspot.rsc';
+
+  function splitLines(value) {
+    return String(value || '').split(/\r?\n/).map(function(item) { return item.trim(); }).filter(Boolean);
+  }
+
+  function renderWifiModelRscWarnings(messages) {
+    var out = byId('wifiModelMikrotikWarnings');
+    if (!out) return;
+    if (!Array.isArray(messages) || !messages.length) {
+      out.innerHTML = '';
+      return;
+    }
+    out.innerHTML = messages.map(function(message) {
+      return '<div class="alert alert-warning py-2 mb-2 small">' + esc(message) + '</div>';
+    }).join('');
+  }
+
+  function readWifiPixPlans() {
+    return splitLines((byId('wifiModelPixPlans') && byId('wifiModelPixPlans').value) || '').map(function(line) {
+      var parts = line.split('|');
+      return {
+        name: (parts[0] || '').trim(),
+        price: Number(parts[1] || 0),
+        duration_minutes: Number(parts[2] || 60),
+        active: true
+      };
+    }).filter(function(plan) { return plan.name; });
+  }
+
+  function refreshWifiRuntimeInfo() {
+    var origin = window.location.origin || '';
+    var slug = ((byId('wifiModelSlug') && byId('wifiModelSlug').value) || '').trim();
+    var tenantSlug = 'tico';
+    var certPath = ((byId('wifiModelHotspotCertPath') && byId('wifiModelHotspotCertPath').value) || '').trim();
+    var portalUrl = ((byId('wifiModelMikrotikPortalUrl') && byId('wifiModelMikrotikPortalUrl').value) || '').trim();
+    var runtimePortalUrl = portalUrl || (slug ? (origin + '/hotspot/' + tenantSlug + '/' + slug) : '');
+    var runtimeWalledGarden = splitLines((byId('wifiModelMikrotikWalledGarden') && byId('wifiModelMikrotikWalledGarden').value) || '').join(', ');
+
+    function setValue(id, value) {
+      if (byId(id)) byId(id).value = value || '';
+    }
+
+    setValue('wifiModelRuntimePortalUrl', runtimePortalUrl);
+    setValue('wifiModelRuntimeWebhookUrl', slug ? (origin + '/api/hotspot/efi/webhook/' + tenantSlug + '/' + slug + '/pix') : '');
+    setValue('wifiModelRuntimePixApi', slug ? ('POST ' + origin + '/api/hotspot/' + tenantSlug + '/templates/' + slug + '/pix/charges') : '');
+    setValue('wifiModelRuntimeRadiusApi', slug ? ('POST ' + origin + '/api/hotspot/' + tenantSlug + '/templates/' + slug + '/radius/login') : '');
+    setValue('wifiModelRuntimeVoucherApi', slug ? ('POST ' + origin + '/api/hotspot/' + tenantSlug + '/templates/' + slug + '/voucher/login') : '');
+    setValue('wifiModelRuntimeOtpApi', slug ? ('POST ' + origin + '/api/hotspot/' + tenantSlug + '/templates/' + slug + '/phone/request-otp') : '');
+    setValue('wifiModelRuntimeConnectedUrl', origin + '/hotspot/conectado?tenant=' + tenantSlug + '&session={session_key}');
+    setValue('wifiModelRuntimeCertInfo', certPath ? ('Configurado em: ' + certPath) : 'Nenhum certificado enviado');
+    setValue('wifiModelRuntimeMikrotikApi', slug ? ('GET ' + origin + '/api/portal/wifi/mikrotik-config?template_id={id}&portal_url=' + encodeURIComponent(runtimePortalUrl)) : '');
+    setValue('wifiModelRuntimeWalledGarden', runtimeWalledGarden || 'Sem extras configurados');
+  }
+
+  function renderWifiPreviewFromEditor() {
+    var preview = byId('wifiModelPreview');
+    if (!preview) return;
+    refreshWifiRuntimeInfo();
+    var authType = (byId('wifiModelAuthType') && byId('wifiModelAuthType').value) || '';
+    var authLabel = authType === 'phone' ? 'Telefone'
+      : authType === 'radius' ? 'RADIUS'
+      : authType === 'temporary_pix' ? 'Freemium + Pix'
+      : authType === 'pix' ? 'Pix'
+      : authType === 'voucher' ? 'Voucher'
+      : authType === 'social' ? 'Login social'
+      : authType === 'custom_portal' ? 'Portal customizado'
+      : authType === 'simple_login' ? 'Login básico'
+      : authType;
+    var idealFor = splitLines((byId('wifiModelIdealFor') && byId('wifiModelIdealFor').value) || '');
+    var features = splitLines((byId('wifiModelFeatures') && byId('wifiModelFeatures').value) || '');
+    var flowSteps = splitLines((byId('wifiModelFlowSteps') && byId('wifiModelFlowSteps').value) || '');
+    var technologies = splitLines((byId('wifiModelTechnologies') && byId('wifiModelTechnologies').value) || '');
+    var pixPlans = readWifiPixPlans();
+    var extras = splitLines((byId('wifiModelExtras') && byId('wifiModelExtras').value) || '');
+    var logoUrl = (byId('wifiModelLogoUrl') && byId('wifiModelLogoUrl').value) || '';
+    var isPixMode = authType === 'pix' || authType === 'temporary_pix';
+    var paymentGatewayLabel = (byId('wifiModelHotspotGatewayName') && byId('wifiModelHotspotGatewayName').value) || (isPixMode ? 'EFI Hotspot' : '');
+    var paymentGatewayType = (byId('wifiModelHotspotGatewayType') && byId('wifiModelHotspotGatewayType').value) || (isPixMode ? 'efi' : '');
+    var paymentPixKey = (byId('wifiModelHotspotPixKey') && byId('wifiModelHotspotPixKey').value) || (isPixMode ? 'SUA_CHAVE_PIX_EFI' : '');
+    var paymentClientId = ((byId('wifiModelHotspotClientId') && byId('wifiModelHotspotClientId').value) || '').trim();
+    var paymentCertPath = ((byId('wifiModelHotspotCertPath') && byId('wifiModelHotspotCertPath').value) || '').trim();
+    var paymentWebhookUrl = ((byId('wifiModelHotspotWebhookUrl') && byId('wifiModelHotspotWebhookUrl').value) || '').trim();
+    var paymentSandbox = !!(byId('wifiModelHotspotSandbox') && byId('wifiModelHotspotSandbox').checked);
+    var radiusHost = ((byId('wifiModelHotspotRadiusHost') && byId('wifiModelHotspotRadiusHost').value) || '').trim();
+    var radiusPort = ((byId('wifiModelHotspotRadiusPort') && byId('wifiModelHotspotRadiusPort').value) || '').trim();
+    var radiusSecret = ((byId('wifiModelHotspotRadiusSecret') && byId('wifiModelHotspotRadiusSecret').value) || '').trim();
+    var radiusNasIp = ((byId('wifiModelHotspotRadiusNasIp') && byId('wifiModelHotspotRadiusNasIp').value) || '').trim();
+    var primaryCta = authType === 'phone' ? 'Entrar com telefone'
+      : authType === 'radius' ? 'Entrar com usuario'
+      : authType === 'temporary_pix' ? 'Continuar e pagar'
+      : authType === 'pix' ? 'Gerar Pix'
+      : authType === 'voucher' ? 'Validar voucher'
+      : authType === 'social' ? 'Continuar com login social'
+      : authType === 'custom_portal' ? 'Abrir portal'
+      : 'Conectar';
+    var secondaryLine = authType === 'phone' ? 'Informe seu numero para liberar o acesso'
+      : authType === 'radius' ? 'Use o mesmo usuario do provedor'
+      : authType === 'temporary_pix' ? 'Use um tempo gratis e depois libere com Pix'
+      : authType === 'pix' ? 'Escolha um plano e pague instantaneamente'
+      : authType === 'voucher' ? 'Digite o codigo entregue ao visitante'
+      : authType === 'social' ? 'Conecte em segundos com um clique'
+      : authType === 'custom_portal' ? 'Experiencia visual personalizada para a sua marca'
+      : 'Acesso simples ao hotspot';
+    var deviceFields = authType === 'phone'
+      ? '<label>Numero de telefone</label><div class="wifi-device-preview__input">(94) 98403-5121</div><div class="wifi-device-preview__helper">Codigo por WhatsApp ou SMS</div>'
+      : authType === 'radius'
+      ? '<label>Usuario RADIUS</label><div class="wifi-device-preview__input">cliente@provedor</div><label class="mt-2">Senha</label><div class="wifi-device-preview__input">••••••••</div>'
+      : authType === 'voucher'
+      ? '<label>Voucher</label><div class="wifi-device-preview__input">EVENTO-2026-ABC123</div><div class="wifi-device-preview__helper">Acesso por tempo ou franquia</div>'
+      : authType === 'social'
+      ? '<div class="wifi-device-preview__socials"><span>Google</span><span>Facebook</span><span>WhatsApp</span></div>'
+      : authType === 'temporary_pix' || authType === 'pix'
+      ? '<div class="wifi-device-preview__plans">' + (pixPlans.length ? pixPlans.slice(0, 3).map(function(plan) {
+        return '<div class="wifi-device-preview__plan"><strong>' + esc(plan.name) + '</strong><span>R$ ' + Number(plan.price || 0).toFixed(2).replace('.', ',') + '</span><small>' + esc(plan.duration_minutes || 0) + ' min</small></div>';
+      }).join('') : '<div class="wifi-device-preview__plan"><strong>Pix 1 Hora</strong><span>R$ 2,00</span><small>60 min</small></div>') + '</div>'
+      : '<label>Acesso</label><div class="wifi-device-preview__input">Continuar para navegar</div>';
+    var modernHtml = '<div class="wifi-model-preview">'
+      + '<div class="wifi-model-preview__hero">'
+      + '<div>'
+      + '<div class="wifi-model-preview__eyebrow">Visao do modelo</div>'
+      + '<div class="wifi-model-preview__title">' + esc((byId('wifiModelName') && byId('wifiModelName').value) || 'Modelo') + '</div>'
+      + '<div class="wifi-model-preview__desc">' + esc((byId('wifiModelDescription') && byId('wifiModelDescription').value) || 'Sem descricao') + '</div>'
+      + '</div>'
+      + ((byId('wifiModelIsDefault') && byId('wifiModelIsDefault').checked) ? '<span class="badge bg-success">Padrao</span>' : '<span class="badge bg-secondary">Preview</span>')
+      + '</div>'
+      + '<div class="wifi-model-preview__device-grid">'
+      + '<div class="wifi-device-preview">'
+      + '<div class="wifi-device-preview__frame">'
+      + '<div class="wifi-device-preview__notch"></div>'
+      + '<div class="wifi-device-preview__screen">'
+      + '<div class="wifi-device-preview__status"><span>09:41</span><span>Wi-Fi</span></div>'
+      + '<div class="wifi-device-preview__brand">' + (logoUrl ? '<img src="' + esc(logoUrl) + '" alt="Logo da empresa" class="wifi-device-preview__logo">' : '<span class="wifi-device-preview__brand-text">Wi-Fi do Provedor</span>') + '</div>'
+      + '<div class="wifi-device-preview__headline">' + esc((byId('wifiModelName') && byId('wifiModelName').value) || 'Acesso Wi-Fi') + '</div>'
+      + '<div class="wifi-device-preview__subline">' + esc(secondaryLine) + '</div>'
+      + '<div class="wifi-device-preview__pill">' + esc(authLabel || 'Autenticacao') + '</div>'
+      + '<div class="wifi-device-preview__body">' + deviceFields + '</div>'
+      + '<button type="button" class="wifi-device-preview__cta">' + esc(primaryCta) + '</button>'
+      + '<div class="wifi-device-preview__footer">Portal captivo exibido no dispositivo do cliente</div>'
+      + '</div>'
+      + '</div>'
+      + '</div>'
+      + '<div class="wifi-model-preview__specs">'
+      + '<div class="wifi-model-preview__badges">'
+      + '<span class="badge text-bg-primary">' + esc(authLabel || 'Autenticacao') + '</span>'
+      + ((byId('wifiModelPortalEnabled') && byId('wifiModelPortalEnabled').checked) ? '<span class="badge text-bg-light border">Portal captivo</span>' : '')
+      + ((byId('wifiModelRadiusEnabled') && byId('wifiModelRadiusEnabled').checked) ? '<span class="badge text-bg-light border">RADIUS</span>' : '')
+      + ((byId('wifiModelRequiresPhone') && byId('wifiModelRequiresPhone').checked) ? '<span class="badge text-bg-light border">Telefone</span>' : '')
+      + ((byId('wifiModelPaymentRequired') && byId('wifiModelPaymentRequired').checked) ? '<span class="badge text-bg-light border">Pagamento</span>' : '')
+      + ((byId('wifiModelBindMac') && byId('wifiModelBindMac').checked) ? '<span class="badge text-bg-light border">Bind MAC</span>' : '')
+      + '</div>'
+      + '<div class="wifi-model-preview__metrics">'
+      + '<div class="wifi-model-preview__metric"><span>Tempo gratis</span><strong>' + esc((byId('wifiModelFreeMinutes') && byId('wifiModelFreeMinutes').value) || 0) + ' min</strong></div>'
+      + '<div class="wifi-model-preview__metric"><span>Sessao</span><strong>' + esc((byId('wifiModelSessionTimeout') && byId('wifiModelSessionTimeout').value) || 0) + ' min</strong></div>'
+      + '<div class="wifi-model-preview__metric"><span>Redirect</span><strong>' + esc((byId('wifiModelRedirectUrl') && byId('wifiModelRedirectUrl').value) || '-') + '</strong></div>'
+      + '</div>'
+      + '</div>'
+      + '</div>';
+    function renderModernList(title, items) {
+      if (!items.length) return '';
+      return '<div class="wifi-model-preview__block"><div class="wifi-model-preview__block-title">' + esc(title) + '</div><ul class="wifi-model-preview__list">' + items.map(function(item) {
+        return '<li class="mb-1">' + esc(item) + '</li>';
+      }).join('') + '</ul></div>';
+    }
+    modernHtml += renderModernList('Uso ideal', idealFor);
+    modernHtml += renderModernList('Recursos', features);
+    modernHtml += renderModernList('Fluxo operacional', flowSteps);
+    modernHtml += renderModernList('Tecnologias', technologies);
+    modernHtml += renderModernList('Gateway hotspot', [
+      paymentGatewayLabel,
+      paymentGatewayType ? ('Tipo: ' + paymentGatewayType) : '',
+      paymentPixKey ? ('Chave: ' + paymentPixKey) : '',
+      paymentClientId ? ('Client ID: ' + paymentClientId) : '',
+      paymentCertPath ? 'Certificado carregado' : '',
+      paymentWebhookUrl ? ('Webhook: ' + paymentWebhookUrl) : '',
+      isPixMode ? ('Ambiente: ' + (paymentSandbox ? 'Sandbox' : 'Produção')) : ''
+    ].filter(Boolean));
+    modernHtml += renderModernList('RADIUS do hotspot', [
+      radiusHost ? ('Host: ' + radiusHost) : '',
+      radiusPort ? ('Porta: ' + radiusPort) : '',
+      radiusNasIp ? ('NAS IP: ' + radiusNasIp) : '',
+      radiusSecret ? 'Secret configurado' : ''
+    ].filter(Boolean));
+    modernHtml += renderModernList('Extras comerciais', extras);
+    if (pixPlans.length) {
+      modernHtml += '<div class="wifi-model-preview__block"><div class="wifi-model-preview__block-title">Planos Pix</div><div class="wifi-model-preview__pix-grid">';
+      pixPlans.forEach(function(plan) {
+        modernHtml += '<div class="wifi-model-preview__pix-card"><strong>' + esc(plan.name) + '</strong><span>R$ ' + Number(plan.price || 0).toFixed(2).replace('.', ',') + '</span><small>' + esc(plan.duration_minutes || 0) + ' min</small></div>';
+      });
+      modernHtml += '</div></div>';
+    }
+    modernHtml += '</div>';
+    preview.innerHTML = modernHtml;
+    return;
+    var html = '<div class="border rounded-4 p-3 bg-white shadow-sm">'
+      + '<div class="d-flex justify-content-between align-items-start gap-2 mb-2">'
+      + '<div><div class="small text-muted text-uppercase mb-1">Modelo</div><div class="fw-bold">' + esc((byId('wifiModelName') && byId('wifiModelName').value) || 'Modelo') + '</div></div>'
+      + ((byId('wifiModelIsDefault') && byId('wifiModelIsDefault').checked) ? '<span class="badge bg-success">Padrão</span>' : '<span class="badge bg-secondary">Preview</span>')
+      + '</div>'
+      + '<div class="small text-muted mb-3">' + esc((byId('wifiModelDescription') && byId('wifiModelDescription').value) || 'Sem descrição') + '</div>'
+      + '<div class="d-flex flex-wrap gap-2 mb-3">'
+      + '<span class="badge text-bg-primary">' + esc(authLabel || 'Autenticação') + '</span>'
+      + ((byId('wifiModelPortalEnabled') && byId('wifiModelPortalEnabled').checked) ? '<span class="badge text-bg-light border">Portal captivo</span>' : '')
+      + ((byId('wifiModelRadiusEnabled') && byId('wifiModelRadiusEnabled').checked) ? '<span class="badge text-bg-light border">RADIUS</span>' : '')
+      + ((byId('wifiModelRequiresPhone') && byId('wifiModelRequiresPhone').checked) ? '<span class="badge text-bg-light border">Telefone</span>' : '')
+      + ((byId('wifiModelPaymentRequired') && byId('wifiModelPaymentRequired').checked) ? '<span class="badge text-bg-light border">Pagamento</span>' : '')
+      + ((byId('wifiModelBindMac') && byId('wifiModelBindMac').checked) ? '<span class="badge text-bg-light border">Bind MAC</span>' : '')
+      + '</div>'
+      + '<div class="small mb-3">'
+      + '<div class="mb-1"><strong>Tempo grátis:</strong> ' + esc((byId('wifiModelFreeMinutes') && byId('wifiModelFreeMinutes').value) || 0) + ' min</div>'
+      + '<div class="mb-1"><strong>Sessão:</strong> ' + esc((byId('wifiModelSessionTimeout') && byId('wifiModelSessionTimeout').value) || 0) + ' min</div>'
+      + '<div><strong>Redirect:</strong> ' + esc((byId('wifiModelRedirectUrl') && byId('wifiModelRedirectUrl').value) || '—') + '</div>'
+      + '</div>';
+    function renderList(title, items) {
+      if (!items.length) return '';
+      return '<div class="mt-3"><div class="small text-muted text-uppercase mb-2">' + esc(title) + '</div><ul class="small ps-3 mb-0">' + items.map(function(item) {
+        return '<li class="mb-1">' + esc(item) + '</li>';
+      }).join('') + '</ul></div>';
+    }
+    html += renderList('Uso ideal', idealFor);
+    html += renderList('Recursos', features);
+    html += renderList('Fluxo operacional', flowSteps);
+    html += renderList('Tecnologias', technologies);
+    if (pixPlans.length) {
+      html += '<div class="mt-3"><div class="small text-muted text-uppercase mb-2">Planos Pix</div><div class="d-flex flex-wrap gap-2">';
+      pixPlans.forEach(function(plan) {
+        html += '<span class="badge text-bg-light border">' + esc(plan.name) + ' · R$ ' + Number(plan.price || 0).toFixed(2).replace('.', ',') + ' · ' + esc(plan.duration_minutes || 0) + ' min</span>';
+      });
+      html += '</div></div>';
+    }
+    html += '</div>';
+    preview.innerHTML = html;
+  }
+
+  function fillWifiModelEditor(row) {
+    var cfg = row && row.config_json && typeof row.config_json === 'object' ? row.config_json : {};
+    var pixPlans = Array.isArray(row && row.pix_plans) ? row.pix_plans : [];
+    if (byId('wifiModelId')) byId('wifiModelId').value = row.id || '';
+    if (byId('wifiModelName')) byId('wifiModelName').value = row.name || '';
+    if (byId('wifiModelSlug')) byId('wifiModelSlug').value = row.slug || '';
+    if (byId('wifiModelAuthType')) byId('wifiModelAuthType').value = row.auth_type || '';
+    if (byId('wifiModelRedirectUrl')) byId('wifiModelRedirectUrl').value = row.redirect_url || '';
+    if (byId('wifiModelLogoUrl')) byId('wifiModelLogoUrl').value = cfg.logo_url || '';
+    if (byId('wifiModelHotspotGatewayName')) byId('wifiModelHotspotGatewayName').value = cfg.hotspot_gateway_name || '';
+    if (byId('wifiModelHotspotGatewayType')) byId('wifiModelHotspotGatewayType').value = cfg.hotspot_gateway_type || '';
+    if (byId('wifiModelHotspotPixKey')) byId('wifiModelHotspotPixKey').value = cfg.hotspot_pix_key || '';
+    if (byId('wifiModelHotspotWebhookUrl')) byId('wifiModelHotspotWebhookUrl').value = cfg.hotspot_webhook_url || '';
+    if (byId('wifiModelHotspotClientId')) byId('wifiModelHotspotClientId').value = cfg.hotspot_gateway_client_id || '';
+    if (byId('wifiModelHotspotClientSecret')) byId('wifiModelHotspotClientSecret').value = cfg.hotspot_gateway_client_secret || '';
+    if (byId('wifiModelHotspotCertPath')) byId('wifiModelHotspotCertPath').value = cfg.hotspot_gateway_certificate_path || '';
+    if (byId('wifiModelHotspotCertKeyPath')) byId('wifiModelHotspotCertKeyPath').value = cfg.hotspot_gateway_certificate_key_path || '';
+    if (byId('wifiModelHotspotCertPassphrase')) byId('wifiModelHotspotCertPassphrase').value = cfg.hotspot_gateway_certificate_passphrase || '';
+    if (byId('wifiModelHotspotWebhookSecret')) byId('wifiModelHotspotWebhookSecret').value = cfg.hotspot_webhook_secret || '';
+    if (byId('wifiModelHotspotBaseUrl')) byId('wifiModelHotspotBaseUrl').value = cfg.hotspot_gateway_base_url || '';
+    if (byId('wifiModelHotspotSandbox')) byId('wifiModelHotspotSandbox').checked = !!cfg.hotspot_gateway_sandbox;
+    if (byId('wifiModelHotspotRadiusHost')) byId('wifiModelHotspotRadiusHost').value = cfg.hotspot_radius_host || '';
+    if (byId('wifiModelHotspotRadiusPort')) byId('wifiModelHotspotRadiusPort').value = cfg.hotspot_radius_port || 1812;
+    if (byId('wifiModelHotspotRadiusSecret')) byId('wifiModelHotspotRadiusSecret').value = cfg.hotspot_radius_secret || '';
+    if (byId('wifiModelHotspotRadiusNasIp')) byId('wifiModelHotspotRadiusNasIp').value = cfg.hotspot_radius_nas_ip || '';
+    if (byId('wifiModelMikrotikPortalUrl')) byId('wifiModelMikrotikPortalUrl').value = cfg.mikrotik_portal_url || '';
+    if (byId('wifiModelMikrotikDnsName')) byId('wifiModelMikrotikDnsName').value = cfg.mikrotik_dns_name || '';
+    if (byId('wifiModelMikrotikInterface')) byId('wifiModelMikrotikInterface').value = cfg.mikrotik_interface || '';
+    if (byId('wifiModelMikrotikBridge')) byId('wifiModelMikrotikBridge').value = cfg.mikrotik_bridge || '';
+    if (byId('wifiModelMikrotikSsid')) byId('wifiModelMikrotikSsid').value = cfg.mikrotik_ssid || '';
+    if (byId('wifiModelMikrotikHotspotAddress')) byId('wifiModelMikrotikHotspotAddress').value = cfg.mikrotik_hotspot_address || '';
+    if (byId('wifiModelMikrotikHotspotMask')) byId('wifiModelMikrotikHotspotMask').value = cfg.mikrotik_hotspot_mask || 24;
+    if (byId('wifiModelMikrotikCoaPort')) byId('wifiModelMikrotikCoaPort').value = cfg.mikrotik_coa_port || 3799;
+    if (byId('wifiModelMikrotikPoolStart')) byId('wifiModelMikrotikPoolStart').value = cfg.mikrotik_pool_start || '';
+    if (byId('wifiModelMikrotikPoolEnd')) byId('wifiModelMikrotikPoolEnd').value = cfg.mikrotik_pool_end || '';
+    if (byId('wifiModelMikrotikPaymentHost')) byId('wifiModelMikrotikPaymentHost').value = cfg.mikrotik_payment_host || '';
+    if (byId('wifiModelMikrotikWalledGarden')) byId('wifiModelMikrotikWalledGarden').value = Array.isArray(cfg.mikrotik_walled_garden) ? cfg.mikrotik_walled_garden.join('\n') : '';
+    if (byId('wifiModelDescription')) byId('wifiModelDescription').value = row.description || '';
+    if (byId('wifiModelFreeMinutes')) byId('wifiModelFreeMinutes').value = row.free_minutes || 0;
+    if (byId('wifiModelSessionTimeout')) byId('wifiModelSessionTimeout').value = row.session_timeout_minutes || 0;
+    if (byId('wifiModelPaymentAmount')) byId('wifiModelPaymentAmount').value = row.payment_amount != null ? row.payment_amount : '';
+    if (byId('wifiModelPortalEnabled')) byId('wifiModelPortalEnabled').checked = !!row.portal_enabled;
+    if (byId('wifiModelRadiusEnabled')) byId('wifiModelRadiusEnabled').checked = !!row.radius_enabled;
+    if (byId('wifiModelRequiresPhone')) byId('wifiModelRequiresPhone').checked = !!row.requires_phone;
+    if (byId('wifiModelPaymentRequired')) byId('wifiModelPaymentRequired').checked = !!row.payment_required;
+    if (byId('wifiModelBindMac')) byId('wifiModelBindMac').checked = !!row.bind_mac;
+    if (byId('wifiModelIsDefault')) byId('wifiModelIsDefault').checked = !!row.is_default;
+    if (byId('wifiModelIdealFor')) byId('wifiModelIdealFor').value = Array.isArray(cfg.ideal_for) ? cfg.ideal_for.join('\n') : '';
+    if (byId('wifiModelFeatures')) byId('wifiModelFeatures').value = Array.isArray(cfg.features) ? cfg.features.join('\n') : '';
+    if (byId('wifiModelFlowSteps')) byId('wifiModelFlowSteps').value = Array.isArray(cfg.flow_steps) ? cfg.flow_steps.join('\n') : '';
+    if (byId('wifiModelTechnologies')) byId('wifiModelTechnologies').value = Array.isArray(cfg.technologies) ? cfg.technologies.join('\n') : '';
+    var extras = []
+      .concat(Array.isArray(cfg.gateways_supported) ? cfg.gateways_supported : [])
+      .concat(Array.isArray(cfg.ctas) ? cfg.ctas : [])
+      .concat(Array.isArray(cfg.limitations) ? cfg.limitations : []);
+    if (byId('wifiModelExtras')) byId('wifiModelExtras').value = extras.join('\n');
+    if (byId('wifiModelPixPlans')) byId('wifiModelPixPlans').value = pixPlans.map(function(plan) {
+      return [plan.name || '', plan.price || 0, plan.duration_minutes || 60].join('|');
+    }).join('\n');
+    if (byId('wifiModelEditorTitle')) byId('wifiModelEditorTitle').textContent = row.name || 'Modelo';
+    if (byId('wifiModelEditorBadge')) byId('wifiModelEditorBadge').textContent = row.is_default ? 'Modelo padrão' : 'Modelo editável';
+    if (byId('wifiModelsError')) byId('wifiModelsError').classList.add('d-none');
+    renderWifiPreviewFromEditor();
+  }
+
+  function renderWifiModelsList(rows) {
+    var out = byId('outWifiModels');
+    if (!out) return;
+    if (!rows || !rows.length) {
+      out.innerHTML = '<div class="text-muted">Nenhum modelo encontrado.</div>';
+      return;
+    }
+    var modernHtml = '<div class="wifi-models-list">';
+    rows.forEach(function(row) {
+      modernHtml += '<button type="button" class="wifi-model-card" data-wifi-model-edit="' + esc(row.id) + '">'
+        + '<div class="wifi-model-card__top">'
+        + '<div><div class="wifi-model-card__title">' + esc(row.name || 'Modelo') + '</div><div class="wifi-model-card__meta">' + esc(row.slug || '') + ' · ' + esc(row.auth_type || '') + '</div></div>'
+        + '<div class="text-end">' + (row.is_default ? '<span class="badge bg-success mb-1">Padrao</span>' : '<span class="badge bg-secondary">Modelo</span>') + '</div>'
+        + '</div>'
+        + '<div class="wifi-model-card__desc">' + esc(row.description || 'Modelo pronto para configurar a jornada de acesso Wi-Fi.') + '</div>'
+        + '<div class="wifi-model-card__flags">'
+        + (row.portal_enabled ? '<span class="badge text-bg-light border">Portal</span>' : '')
+        + (row.radius_enabled ? '<span class="badge text-bg-light border">RADIUS</span>' : '')
+        + (row.requires_phone ? '<span class="badge text-bg-light border">Telefone</span>' : '')
+        + (row.payment_required ? '<span class="badge text-bg-light border">Pix/Pagamento</span>' : '')
+        + '</div></button>';
+    });
+    modernHtml += '</div>';
+    out.innerHTML = modernHtml;
+    return;
+    var html = '<div class="list-group">';
+    rows.forEach(function(row) {
+      html += '<button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-start" data-wifi-model-edit="' + esc(row.id) + '">'
+        + '<div><div class="fw-semibold">' + esc(row.name || 'Modelo') + '</div><div class="small text-muted">' + esc(row.slug || '') + ' · ' + esc(row.auth_type || '') + '</div></div>'
+        + '<div class="text-end">' + (row.is_default ? '<span class="badge bg-success mb-1">Padrão</span>' : '<span class="badge bg-secondary">Modelo</span>') + '</div></button>';
+    });
+    html += '</div>';
+    out.innerHTML = html;
+  }
+
+  function loadWifiModels(selectedId) {
+    var out = byId('outWifiModels');
+    if (out) out.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Carregando...';
+    api('/wifi-templates').then(function(data) {
+      wifiModelsCache = data.rows || [];
+      renderWifiModelsList(wifiModelsCache);
+      if (wifiModelsCache.length) {
+        var preferred = Number(selectedId || 0);
+        var selected = preferred ? wifiModelsCache.find(function(item) { return Number(item.id) === preferred; }) : null;
+        fillWifiModelEditor(selected || wifiModelsCache[0]);
+      }
+    }).catch(function(err) {
+      if (out) out.innerHTML = '<div class="alert alert-danger py-2 mb-0">' + esc(err.message || 'Erro ao carregar modelos.') + '</div>';
+    });
+  }
+
+  function loadWifiModelMikrotikConfig() {
+    var id = Number((byId('wifiModelId') && byId('wifiModelId').value) || 0);
+    var output = byId('wifiModelMikrotikOutput');
+    var summary = byId('wifiModelMikrotikSummary');
+    if (!id) {
+      if (summary) summary.innerHTML = '<div class="alert alert-warning py-2 mb-0">Selecione um modelo para gerar o script.</div>';
+      if (output) output.textContent = '# Selecione um modelo Wi-Fi';
+      renderWifiModelRscWarnings([]);
+      return;
+    }
+    if (summary) summary.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Gerando .rsc...';
+    if (output) output.textContent = '# Gerando script...';
+    renderWifiModelRscWarnings([]);
+    api('/wifi-templates/' + id + '/mikrotik-config').then(function(data) {
+      wifiModelLastGeneratedFileName = data.file_name || 'mikrotik-hotspot.rsc';
+      if (output) output.textContent = data.script || '# Nenhum script gerado';
+      if (summary) {
+        var items = Array.isArray(data.summary) ? data.summary : [];
+        summary.innerHTML = items.length
+          ? '<div class="small text-muted mb-2">Resumo do modelo</div><ul class="small ps-3 mb-0">' + items.map(function(item) { return '<li class="mb-1">' + esc(item) + '</li>'; }).join('') + '</ul>'
+          : 'Script gerado com sucesso.';
+      }
+      renderWifiModelRscWarnings(Array.isArray(data.warnings) ? data.warnings : []);
+    }).catch(function(err) {
+      if (summary) summary.innerHTML = '<div class="alert alert-danger py-2 mb-0">' + esc(err.message || 'Não foi possível gerar o .rsc.') + '</div>';
+      if (output) output.textContent = '# Falha ao gerar script';
+      renderWifiModelRscWarnings([]);
+    });
+  }
+
+  function copyWifiModelMikrotikConfig() {
+    var output = byId('wifiModelMikrotikOutput');
+    var text = output ? String(output.textContent || '') : '';
+    if (!text.trim() || text.indexOf('# Falha') === 0 || text.indexOf('# Gerando') === 0) {
+      alert('Gere o .rsc antes de copiar.');
+      return;
+    }
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      navigator.clipboard.writeText(text).then(function() {
+        alert('Script copiado.');
+      }).catch(function() {
+        alert('Não foi possível copiar automaticamente.');
+      });
+      return;
+    }
+    alert('Copie manualmente o script exibido.');
+  }
+
+  function downloadWifiModelMikrotikConfig() {
+    var output = byId('wifiModelMikrotikOutput');
+    var text = output ? String(output.textContent || '') : '';
+    if (!text.trim() || text.indexOf('# Falha') === 0 || text.indexOf('# Gerando') === 0) {
+      alert('Gere o .rsc antes de baixar.');
+      return;
+    }
+    var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = wifiModelLastGeneratedFileName || 'mikrotik-hotspot.rsc';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function saveWifiModel() {
+    var id = Number((byId('wifiModelId') && byId('wifiModelId').value) || 0);
+    var errEl = byId('wifiModelsError');
+    if (!id) {
+      if (errEl) {
+        errEl.textContent = 'Selecione um modelo para editar.';
+        errEl.classList.remove('d-none');
+      }
+      return;
+    }
+    var extras = splitLines((byId('wifiModelExtras') && byId('wifiModelExtras').value) || '');
+    var authType = (byId('wifiModelAuthType') && byId('wifiModelAuthType').value) || '';
+    var isPixMode = authType === 'pix' || authType === 'temporary_pix';
+    var hotspotGatewayName = ((byId('wifiModelHotspotGatewayName') && byId('wifiModelHotspotGatewayName').value) || '').trim() || (isPixMode ? 'EFI Hotspot' : '');
+    var hotspotGatewayType = ((byId('wifiModelHotspotGatewayType') && byId('wifiModelHotspotGatewayType').value) || '').trim() || (isPixMode ? 'efi' : '');
+    var hotspotPixKey = ((byId('wifiModelHotspotPixKey') && byId('wifiModelHotspotPixKey').value) || '').trim() || (isPixMode ? 'SUA_CHAVE_PIX_EFI' : '');
+    var hotspotWebhookUrl = ((byId('wifiModelHotspotWebhookUrl') && byId('wifiModelHotspotWebhookUrl').value) || '').trim() || (isPixMode ? 'https://api.seudominio.com/hotspot/pix/efi/webhook' : '');
+    var hotspotClientId = ((byId('wifiModelHotspotClientId') && byId('wifiModelHotspotClientId').value) || '').trim();
+    var hotspotClientSecret = ((byId('wifiModelHotspotClientSecret') && byId('wifiModelHotspotClientSecret').value) || '').trim();
+    var hotspotCertPath = ((byId('wifiModelHotspotCertPath') && byId('wifiModelHotspotCertPath').value) || '').trim();
+    var hotspotCertKeyPath = ((byId('wifiModelHotspotCertKeyPath') && byId('wifiModelHotspotCertKeyPath').value) || '').trim();
+    var hotspotCertPassphrase = ((byId('wifiModelHotspotCertPassphrase') && byId('wifiModelHotspotCertPassphrase').value) || '').trim();
+    var hotspotWebhookSecret = ((byId('wifiModelHotspotWebhookSecret') && byId('wifiModelHotspotWebhookSecret').value) || '').trim();
+    var hotspotBaseUrl = ((byId('wifiModelHotspotBaseUrl') && byId('wifiModelHotspotBaseUrl').value) || '').trim();
+    var hotspotSandbox = !!(byId('wifiModelHotspotSandbox') && byId('wifiModelHotspotSandbox').checked);
+    var hotspotRadiusHost = ((byId('wifiModelHotspotRadiusHost') && byId('wifiModelHotspotRadiusHost').value) || '').trim();
+    var hotspotRadiusPort = ((byId('wifiModelHotspotRadiusPort') && byId('wifiModelHotspotRadiusPort').value) || '').trim();
+    var hotspotRadiusSecret = ((byId('wifiModelHotspotRadiusSecret') && byId('wifiModelHotspotRadiusSecret').value) || '').trim();
+    var hotspotRadiusNasIp = ((byId('wifiModelHotspotRadiusNasIp') && byId('wifiModelHotspotRadiusNasIp').value) || '').trim();
+    var mikrotikPortalUrl = ((byId('wifiModelMikrotikPortalUrl') && byId('wifiModelMikrotikPortalUrl').value) || '').trim();
+    var mikrotikDnsName = ((byId('wifiModelMikrotikDnsName') && byId('wifiModelMikrotikDnsName').value) || '').trim();
+    var mikrotikInterface = ((byId('wifiModelMikrotikInterface') && byId('wifiModelMikrotikInterface').value) || '').trim();
+    var mikrotikBridge = ((byId('wifiModelMikrotikBridge') && byId('wifiModelMikrotikBridge').value) || '').trim();
+    var mikrotikSsid = ((byId('wifiModelMikrotikSsid') && byId('wifiModelMikrotikSsid').value) || '').trim();
+    var mikrotikHotspotAddress = ((byId('wifiModelMikrotikHotspotAddress') && byId('wifiModelMikrotikHotspotAddress').value) || '').trim();
+    var mikrotikHotspotMask = ((byId('wifiModelMikrotikHotspotMask') && byId('wifiModelMikrotikHotspotMask').value) || '').trim();
+    var mikrotikCoaPort = ((byId('wifiModelMikrotikCoaPort') && byId('wifiModelMikrotikCoaPort').value) || '').trim();
+    var mikrotikPoolStart = ((byId('wifiModelMikrotikPoolStart') && byId('wifiModelMikrotikPoolStart').value) || '').trim();
+    var mikrotikPoolEnd = ((byId('wifiModelMikrotikPoolEnd') && byId('wifiModelMikrotikPoolEnd').value) || '').trim();
+    var mikrotikPaymentHost = ((byId('wifiModelMikrotikPaymentHost') && byId('wifiModelMikrotikPaymentHost').value) || '').trim();
+    var mikrotikWalledGarden = splitLines((byId('wifiModelMikrotikWalledGarden') && byId('wifiModelMikrotikWalledGarden').value) || '');
+    var body = {
+      name: (byId('wifiModelName') && byId('wifiModelName').value) || '',
+      slug: (byId('wifiModelSlug') && byId('wifiModelSlug').value) || '',
+      auth_type: authType,
+      redirect_url: (byId('wifiModelRedirectUrl') && byId('wifiModelRedirectUrl').value) || '',
+      description: (byId('wifiModelDescription') && byId('wifiModelDescription').value) || '',
+      free_minutes: Number((byId('wifiModelFreeMinutes') && byId('wifiModelFreeMinutes').value) || 0),
+      session_timeout_minutes: Number((byId('wifiModelSessionTimeout') && byId('wifiModelSessionTimeout').value) || 0),
+      payment_amount: (byId('wifiModelPaymentAmount') && byId('wifiModelPaymentAmount').value) || null,
+      portal_enabled: !!(byId('wifiModelPortalEnabled') && byId('wifiModelPortalEnabled').checked),
+      radius_enabled: !!(byId('wifiModelRadiusEnabled') && byId('wifiModelRadiusEnabled').checked),
+      requires_phone: !!(byId('wifiModelRequiresPhone') && byId('wifiModelRequiresPhone').checked),
+      payment_required: !!(byId('wifiModelPaymentRequired') && byId('wifiModelPaymentRequired').checked),
+      bind_mac: !!(byId('wifiModelBindMac') && byId('wifiModelBindMac').checked),
+      is_default: !!(byId('wifiModelIsDefault') && byId('wifiModelIsDefault').checked),
+      is_active: true,
+      config_json: {
+        logo_url: (byId('wifiModelLogoUrl') && byId('wifiModelLogoUrl').value) || '',
+        hotspot_gateway_name: hotspotGatewayName,
+        hotspot_gateway_type: hotspotGatewayType,
+        hotspot_pix_key: hotspotPixKey,
+        hotspot_webhook_url: hotspotWebhookUrl,
+        hotspot_gateway_client_id: hotspotClientId,
+        hotspot_gateway_client_secret: hotspotClientSecret,
+        hotspot_gateway_certificate_path: hotspotCertPath,
+        hotspot_gateway_certificate_key_path: hotspotCertKeyPath,
+        hotspot_gateway_certificate_passphrase: hotspotCertPassphrase,
+        hotspot_webhook_secret: hotspotWebhookSecret,
+        hotspot_gateway_base_url: hotspotBaseUrl,
+        hotspot_gateway_sandbox: hotspotSandbox,
+        hotspot_radius_host: hotspotRadiusHost,
+        hotspot_radius_port: hotspotRadiusPort ? Number(hotspotRadiusPort) : null,
+        hotspot_radius_secret: hotspotRadiusSecret,
+        hotspot_radius_nas_ip: hotspotRadiusNasIp,
+        mikrotik_portal_url: mikrotikPortalUrl,
+        mikrotik_dns_name: mikrotikDnsName,
+        mikrotik_interface: mikrotikInterface,
+        mikrotik_bridge: mikrotikBridge,
+        mikrotik_ssid: mikrotikSsid,
+        mikrotik_hotspot_address: mikrotikHotspotAddress,
+        mikrotik_hotspot_mask: mikrotikHotspotMask ? Number(mikrotikHotspotMask) : null,
+        mikrotik_coa_port: mikrotikCoaPort ? Number(mikrotikCoaPort) : null,
+        mikrotik_pool_start: mikrotikPoolStart,
+        mikrotik_pool_end: mikrotikPoolEnd,
+        mikrotik_payment_host: mikrotikPaymentHost,
+        mikrotik_walled_garden: mikrotikWalledGarden,
+        ideal_for: splitLines((byId('wifiModelIdealFor') && byId('wifiModelIdealFor').value) || ''),
+        features: splitLines((byId('wifiModelFeatures') && byId('wifiModelFeatures').value) || ''),
+        flow_steps: splitLines((byId('wifiModelFlowSteps') && byId('wifiModelFlowSteps').value) || ''),
+        technologies: splitLines((byId('wifiModelTechnologies') && byId('wifiModelTechnologies').value) || ''),
+        gateways_supported: extras,
+        ctas: extras,
+        limitations: extras
+      },
+      pix_plans: readWifiPixPlans()
+    };
+    api('/wifi-templates/' + id, { method: 'PUT', body: JSON.stringify(body) }).then(function() {
+      loadWifiModels(id);
+      alert('Modelo salvo com sucesso.');
+    }).catch(function(err) {
+      if (errEl) {
+        errEl.textContent = err.message || 'Erro ao salvar o modelo.';
+        errEl.classList.remove('d-none');
+      }
+    });
+  }
+
+  function setWifiModelDefault() {
+    var id = Number((byId('wifiModelId') && byId('wifiModelId').value) || 0);
+    var errEl = byId('wifiModelsError');
+    if (!id) {
+      if (errEl) {
+        errEl.textContent = 'Selecione um modelo para definir como padrão.';
+        errEl.classList.remove('d-none');
+      }
+      return;
+    }
+    api('/wifi-templates/' + id + '/default', { method: 'POST' }).then(function() {
+      if (byId('wifiModelIsDefault')) byId('wifiModelIsDefault').checked = true;
+      loadWifiModels(id);
+      alert('Modelo definido como padrão.');
+    }).catch(function(err) {
+      if (errEl) {
+        errEl.textContent = err.message || 'Erro ao definir o modelo padrão.';
+        errEl.classList.remove('d-none');
+      }
+    });
+  }
+
+  document.addEventListener('click', function(event) {
+    var btn = event.target && event.target.closest ? event.target.closest('[data-wifi-model-edit]') : null;
+    if (!btn) return;
+    var id = Number(btn.getAttribute('data-wifi-model-edit') || 0);
+    var found = wifiModelsCache.find(function(item) { return Number(item.id) === id; });
+    if (found) fillWifiModelEditor(found);
+  });
+
+  safeAddEvent(byId('btnLoadWifiModels'), 'click', loadWifiModels);
+  safeAddEvent(byId('btnSaveWifiModel'), 'click', saveWifiModel);
+  safeAddEvent(byId('btnSetWifiModelDefault'), 'click', setWifiModelDefault);
+  safeAddEvent(byId('btnGenerateWifiModelRsc'), 'click', loadWifiModelMikrotikConfig);
+  safeAddEvent(byId('btnCopyWifiModelRsc'), 'click', copyWifiModelMikrotikConfig);
+  safeAddEvent(byId('btnDownloadWifiModelRsc'), 'click', downloadWifiModelMikrotikConfig);
+  [
+    'wifiModelName',
+    'wifiModelSlug',
+    'wifiModelAuthType',
+    'wifiModelRedirectUrl',
+    'wifiModelLogoUrl',
+    'wifiModelHotspotGatewayName',
+    'wifiModelHotspotGatewayType',
+    'wifiModelHotspotPixKey',
+    'wifiModelHotspotWebhookUrl',
+    'wifiModelHotspotClientId',
+    'wifiModelHotspotClientSecret',
+    'wifiModelHotspotCertPath',
+    'wifiModelHotspotCertKeyPath',
+    'wifiModelHotspotCertPassphrase',
+    'wifiModelHotspotWebhookSecret',
+    'wifiModelHotspotBaseUrl',
+    'wifiModelHotspotRadiusHost',
+    'wifiModelHotspotRadiusPort',
+    'wifiModelHotspotRadiusSecret',
+    'wifiModelHotspotRadiusNasIp',
+    'wifiModelMikrotikPortalUrl',
+    'wifiModelMikrotikDnsName',
+    'wifiModelMikrotikInterface',
+    'wifiModelMikrotikBridge',
+    'wifiModelMikrotikSsid',
+    'wifiModelMikrotikHotspotAddress',
+    'wifiModelMikrotikHotspotMask',
+    'wifiModelMikrotikCoaPort',
+    'wifiModelMikrotikPoolStart',
+    'wifiModelMikrotikPoolEnd',
+    'wifiModelMikrotikPaymentHost',
+    'wifiModelMikrotikWalledGarden',
+    'wifiModelDescription',
+    'wifiModelFreeMinutes',
+    'wifiModelSessionTimeout',
+    'wifiModelPaymentAmount',
+    'wifiModelIdealFor',
+    'wifiModelFeatures',
+    'wifiModelFlowSteps',
+    'wifiModelTechnologies',
+    'wifiModelExtras',
+    'wifiModelPixPlans'
+  ].forEach(function(id) {
+    safeAddEvent(byId(id), 'input', renderWifiPreviewFromEditor);
+  });
+  [
+    'wifiModelPortalEnabled',
+    'wifiModelRadiusEnabled',
+    'wifiModelRequiresPhone',
+    'wifiModelPaymentRequired',
+    'wifiModelBindMac',
+    'wifiModelIsDefault',
+    'wifiModelHotspotSandbox'
+  ].forEach(function(id) {
+    safeAddEvent(byId(id), 'change', renderWifiPreviewFromEditor);
+  });
+  safeAddEvent(byId('btnWifiUploadCert'), 'click', function() {
+    doHotspotCertUpload('wifiModelHotspotCertUpload', 'wifiModelHotspotCertPath', 'btnWifiUploadCert');
+  });
+  safeAddEvent(byId('btnWifiUploadKey'), 'click', function() {
+    doHotspotCertUpload('wifiModelHotspotKeyUpload', 'wifiModelHotspotCertKeyPath', 'btnWifiUploadKey');
   });
 
   function loadNasTenantOptions() {

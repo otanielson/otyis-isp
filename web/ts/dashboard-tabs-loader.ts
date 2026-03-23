@@ -10,6 +10,7 @@
 
   var CONTAINER_ID = "dashboard-tab-content";
   var TABS_BASE = "dashboard/tabs";
+  var TABS_VERSION = "wifi-20260322b";
 
   function getTabsBase() {
     var base = window.__PORTAL_BASE__ || "/portal";
@@ -29,6 +30,7 @@
       contratos: "contracts",
       suporte: "tickets",
       clube: "clube",
+      wifi: "wifi",
       financeiro: "finance",
       fiscal: "fiscal",
       estoque: "estoque",
@@ -51,7 +53,7 @@
       return Promise.resolve();
     }
 
-    var url = getTabsBase() + "/" + tabId + ".html";
+    var url = getTabsBase() + "/" + tabId + ".html?v=" + encodeURIComponent(TABS_VERSION);
     return fetch(url, { credentials: "same-origin" })
       .then(function (response) {
         if (!response.ok) {

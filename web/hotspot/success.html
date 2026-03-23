@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Acesso Liberado | Hotspot</title>
+  <style>
+    :root { --ok:#16a34a; --dark:#08111d; --text:#0f172a; --muted:#64748b; }
+    body { margin:0; min-height:100vh; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; color:var(--text);
+      background:radial-gradient(circle at top, rgba(22,163,74,.18), transparent 30%), linear-gradient(180deg,#08111d 0%,#0f1d35 28%,#eff6ff 28%,#f8fbff 100%);}
+    .wrap { max-width:780px; margin:0 auto; padding:2rem 1rem 3rem; }
+    .card { background:#fff; border-radius:28px; padding:1.5rem; box-shadow:0 30px 80px rgba(2,8,23,.2); border:1px solid rgba(148,163,184,.22); }
+    .eyebrow { text-transform:uppercase; letter-spacing:.15em; color:var(--ok); font-size:.75rem; font-weight:800; }
+    h1 { font-size:clamp(2.1rem,4vw,3.5rem); line-height:.95; margin:.55rem 0 1rem; letter-spacing:-.05em; }
+    .muted { color:var(--muted); line-height:1.7; }
+    .cred { margin-top:1rem; display:grid; gap:.8rem; }
+    .box { border-radius:18px; background:var(--dark); color:#f8fafc; padding:1rem 1.1rem; }
+    .box strong { display:block; font-size:.8rem; text-transform:uppercase; color:#93c5fd; margin-bottom:.35rem; }
+    .timer { margin-top:1.2rem; padding:1rem 1.1rem; border-radius:18px; background:linear-gradient(180deg,#ecfdf5,#fff); border:1px solid rgba(22,163,74,.18); }
+    .actions { margin-top:1rem; display:flex; gap:.75rem; flex-wrap:wrap; }
+    .btn { display:inline-flex; align-items:center; justify-content:center; min-height:48px; padding:0 1rem; border-radius:16px; text-decoration:none; font-weight:700; }
+    .btn-primary { background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; }
+    .btn-light { background:#fff; color:var(--text); border:1px solid #d6e3f0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="eyebrow">Hotspot liberado</div>
+      <h1>Navegação autorizada</h1>
+      <p class="muted">O pagamento foi confirmado e o hotspot já preparou as credenciais temporárias para este dispositivo.</p>
+      <div class="cred">
+        <div class="box"><strong>Usuário</strong><span id="releasedUser">Carregando...</span></div>
+        <div class="box"><strong>Senha</strong><span id="releasedPass">Carregando...</span></div>
+      </div>
+      <div class="timer">
+        <strong>Redirecionamento final</strong>
+        <div class="muted">Você será enviado para a página final em <span id="countdown">10</span> segundos.</div>
+      </div>
+      <div class="actions">
+        <a class="btn btn-primary" id="continueBtn" href="/">Continuar agora</a>
+        <a class="btn btn-light" href="/hotspot">Voltar ao portal</a>
+      </div>
+    </div>
+  </div>
+  <script type="module">
+    const params = new URLSearchParams(window.location.search);
+    const sessionKey = params.get('session') || '';
+    const target = params.get('redirect') || '/';
+    const continueBtn = document.getElementById('continueBtn');
+    const userEl = document.getElementById('releasedUser');
+    const passEl = document.getElementById('releasedPass');
+    const counterEl = document.getElementById('countdown');
+    if (continueBtn) continueBtn.href = target;
+    async function loadSession() {
+      if (!sessionKey) return;
+      const res = await fetch('/api/hotspot/sessions/' + encodeURIComponent(sessionKey) + '/status', { credentials: 'same-origin' });
+      const data = await res.json();
+      if (userEl) userEl.textContent = data?.session?.released_username || '---';
+      if (passEl) passEl.textContent = data?.session?.released_password || '---';
+    }
+    loadSession().catch(() => {});
+    let remaining = 10;
+    const timer = window.setInterval(() => {
+      remaining -= 1;
+      if (counterEl) counterEl.textContent = String(Math.max(remaining, 0));
+      if (remaining <= 0) {
+        window.clearInterval(timer);
+        window.location.href = target;
+      }
+    }, 1000);
+  </script>
+</body>
+</html>

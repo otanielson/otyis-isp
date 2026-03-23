@@ -5,7 +5,7 @@
 # Uso: sudo ./installer/reinstall-keep-db.sh
 #      (deve ser executado na pasta do projeto, ex.: /var/www/otyis-isp)
 #      O .env existente será preservado.
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -29,9 +29,14 @@ fi
 
 # Carregar DB_NAME, DB_USER, DB_PASS do .env
 while IFS= read -r line; do
+  line="${line%$'\r'}"
   [[ "$line" =~ ^#.*$ ]] && continue
+  [[ -z "$line" ]] && continue
   if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
-    export "${BASH_REMATCH[1]}=${BASH_REMATCH[2]}"
+    key="${BASH_REMATCH[1]}"
+    value="${BASH_REMATCH[2]}"
+    value="${value%$'\r'}"
+    export "$key=$value"
   fi
 done < "$PROJECT_ROOT/.env" 2>/dev/null || true
 
@@ -90,6 +95,8 @@ npm run build:portal 2>/dev/null || true
 npm run build:portal-spa 2>/dev/null || true
 [ -d "$PROJECT_ROOT/web" ] && [ -d "$INSTALL_DIR/dist" ] && ( rm -rf "$INSTALL_DIR/dist/web"; cp -r "$PROJECT_ROOT/web" "$INSTALL_DIR/dist/web" ) || true
 [ -d "$INSTALL_DIR/site" ] || mkdir -p "$INSTALL_DIR/site/static"
+[ -d "$INSTALL_DIR/web" ] && chmod -R a+rX "$INSTALL_DIR/web" || true
+[ -d "$INSTALL_DIR/site" ] && chmod -R a+rX "$INSTALL_DIR/site" || true
 log_ok "Aplicação reinstalada."
 
 # --- 4) Reiniciar serviços ---

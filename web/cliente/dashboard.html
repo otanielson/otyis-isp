@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Painel do Cliente | Multi Telecom</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/styles.css" />
+  <style>
+    :root {
+      --cp-bg: #07111f;
+      --cp-panel: #ffffff;
+      --cp-panel-soft: #f8fbff;
+      --cp-border: #d8e4f2;
+      --cp-text: #0f172a;
+      --cp-muted: #64748b;
+      --cp-primary: #0b5ed7;
+      --cp-primary-dark: #083b86;
+      --cp-success: #0f9f6e;
+      --cp-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+      --cp-radius: 24px;
+      --cp-radius-sm: 16px;
+    }
+    body.client-portal {
+      background:
+        radial-gradient(circle at top left, rgba(14, 165, 233, 0.10), transparent 28%),
+        radial-gradient(circle at top right, rgba(16, 185, 129, 0.08), transparent 30%),
+        linear-gradient(180deg, #081221 0%, #0b1730 26%, #eef4fb 26%, #f7fafc 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .client-portal__dashboard {
+      padding: 2.4rem 0 2.8rem;
+    }
+    .client-portal__shell {
+      max-width: 1240px;
+    }
+    .client-portal__hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(290px, .9fr);
+      gap: 1rem;
+      align-items: stretch;
+      margin-bottom: 1.1rem;
+    }
+    .client-portal__section-card {
+      border-radius: 1.25rem;
+      border: 1px solid var(--cp-border);
+      box-shadow: var(--cp-shadow);
+      background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+      overflow: hidden;
+    }
+    .client-portal__section-card .card-header {
+      padding-top: 1.35rem;
+      padding-left: 1.35rem;
+      padding-right: 1.35rem;
+    }
+    .client-portal__section-card .card-body {
+      padding: 1.35rem;
+    }
+    .client-portal__section-card h5 {
+      font-weight: 800;
+      color: var(--cp-text);
+      letter-spacing: -0.02em;
+    }
+    .client-portal__mini-card {
+      border: 1px solid #d7e8fb;
+      border-radius: 1.15rem;
+      padding: 1.1rem 1.15rem;
+      background: linear-gradient(180deg, #f7fbff 0%, #ffffff 100%);
+      box-shadow: 0 14px 32px rgba(37, 99, 235, 0.08);
+      min-height: 100%;
+    }
+    .client-portal__mini-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .75rem;
+      margin-bottom: .95rem;
+    }
+    .client-portal__mini-card strong {
+      display: block;
+      color: var(--cp-text);
+      font-size: 1rem;
+      margin-bottom: 0;
+      letter-spacing: -0.02em;
+    }
+    .client-portal__mini-kicker {
+      display: block;
+      color: var(--cp-muted);
+      font-size: .78rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: .45rem;
+      font-weight: 700;
+    }
+    .client-portal__welcome {
+      border: 1px solid rgba(219, 231, 244, 0.5);
+      border-radius: 1.35rem;
+      padding: 1.3rem 1.35rem;
+      background:
+        radial-gradient(circle at top right, rgba(37, 99, 235, 0.14), transparent 34%),
+        linear-gradient(135deg, rgba(255,255,255,0.97) 0%, rgba(245,249,255,0.96) 100%);
+      box-shadow: 0 22px 48px rgba(15, 23, 42, 0.1);
+    }
+    .client-portal__welcome-title {
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--cp-text);
+      margin-bottom: .2rem;
+      font-size: clamp(1.35rem, 2vw, 1.9rem);
+    }
+    .client-portal__welcome-copy {
+      margin: 0;
+      color: var(--cp-muted);
+      max-width: 56rem;
+    }
+    .client-portal__quick-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: .7rem;
+      margin-top: .95rem;
+    }
+    .client-portal__quick-item {
+      border: 1px solid #dbe7f4;
+      border-radius: 1rem;
+      padding: .8rem .95rem;
+      background: rgba(255,255,255,0.88);
+    }
+    .client-portal__quick-label {
+      display: block;
+      color: var(--cp-muted);
+      font-size: .76rem;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin-bottom: .28rem;
+      font-weight: 700;
+    }
+    .client-portal__quick-value {
+      color: var(--cp-text);
+      font-size: 1.02rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .client-portal__hero-side {
+      border: 1px solid rgba(191, 219, 254, 0.28);
+      border-radius: 1.35rem;
+      padding: 1.1rem 1.15rem;
+      background: linear-gradient(180deg, rgba(7, 17, 31, 0.92) 0%, rgba(12, 30, 61, 0.92) 100%);
+      color: #dbeafe;
+      box-shadow: 0 24px 52px rgba(2, 6, 23, 0.3);
+    }
+    .client-portal__hero-side-kicker {
+      display: block;
+      color: rgba(191, 219, 254, 0.84);
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: .55rem;
+      font-weight: 700;
+    }
+    .client-portal__hero-side h3 {
+      font-size: 1.12rem;
+      line-height: 1.2;
+      margin-bottom: .55rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .client-portal__hero-side p {
+      margin: 0;
+      color: rgba(226, 232, 240, 0.82);
+      font-size: .93rem;
+      line-height: 1.55;
+    }
+    .client-portal__hero-list {
+      list-style: none;
+      margin: .95rem 0 0;
+      padding: 0;
+      display: grid;
+      gap: .65rem;
+    }
+    .client-portal__hero-list li {
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 1rem;
+      padding: .72rem .85rem;
+      background: rgba(15, 23, 42, 0.34);
+    }
+    .client-portal__hero-list strong {
+      display: block;
+      font-size: .84rem;
+      color: #eff6ff;
+      margin-bottom: .18rem;
+    }
+    .client-portal__hero-list span {
+      display: block;
+      color: rgba(226, 232, 240, 0.72);
+      font-size: .82rem;
+      line-height: 1.45;
+    }
+    .client-portal__ticket-form {
+      border: 1px solid #cfe0f3;
+      border-radius: 1rem;
+      padding: 1rem;
+      background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.65);
+    }
+    .client-portal__pill {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      padding: .28rem .65rem;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: var(--cp-primary-dark);
+      font-size: .77rem;
+      font-weight: 700;
+      border: 1px solid #cfe0ff;
+    }
+    .client-portal__section-note {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      padding: .3rem .7rem;
+      border-radius: 999px;
+      background: #f1f7ff;
+      color: #24529c;
+      font-size: .74rem;
+      font-weight: 800;
+      border: 1px solid #d3e3fb;
+    }
+    .client-portal__data-list {
+      display: grid;
+      gap: .75rem;
+    }
+    .client-portal__data-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding-bottom: .6rem;
+      border-bottom: 1px dashed #d9e5f1;
+    }
+    .client-portal__data-row:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+    .client-portal__data-label {
+      color: var(--cp-muted);
+      font-size: .82rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .client-portal__data-value {
+      color: var(--cp-text);
+      font-weight: 700;
+      text-align: right;
+    }
+    .client-portal__data-value--muted {
+      color: var(--cp-muted);
+      font-weight: 600;
+    }
+    .client-portal__contract-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: .9rem;
+    }
+    .client-portal__contract-card {
+      border: 1px solid #d9e6f4;
+      border-radius: 1rem;
+      padding: 1rem;
+      background: linear-gradient(180deg, #f9fcff 0%, #ffffff 100%);
+    }
+    .client-portal__contract-card h6 {
+      margin: 0 0 .85rem;
+      color: var(--cp-text);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .client-portal__contract-meta {
+      display: grid;
+      gap: .7rem;
+    }
+    .client-portal__contract-meta div {
+      display: flex;
+      justify-content: space-between;
+      gap: .8rem;
+      border-bottom: 1px dashed #d9e5f1;
+      padding-bottom: .55rem;
+    }
+    .client-portal__contract-meta div:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+    .client-portal__contract-meta span {
+      color: var(--cp-muted);
+      font-size: .8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .client-portal__contract-meta strong {
+      color: var(--cp-text);
+      text-align: right;
+      font-weight: 800;
+    }
+    .client-portal__status-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: .25rem .65rem;
+      font-size: .76rem;
+      font-weight: 800;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+    .client-portal__status-badge--success { background: #dcfce7; color: #166534; }
+    .client-portal__status-badge--warning { background: #fef3c7; color: #92400e; }
+    .client-portal__status-badge--danger { background: #fee2e2; color: #991b1b; }
+    .client-portal__status-badge--info { background: #dbeafe; color: #1d4ed8; }
+    .client-portal__status-badge--secondary { background: #e2e8f0; color: #334155; }
+    .client-portal__status-badge--dark { background: #cbd5e1; color: #0f172a; }
+    .client-portal__status-badge--primary { background: #dbeafe; color: #1e40af; }
+    .client-portal__ticket-subject {
+      display: grid;
+      gap: .35rem;
+    }
+    .client-portal__ticket-note {
+      color: var(--cp-muted);
+      font-size: .82rem;
+      line-height: 1.45;
+    }
+    .client-portal__ticket-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+    .client-portal__ticket-viewer {
+      border: 1px solid #d6e4f3;
+      border-radius: 1rem;
+      padding: 1rem;
+      background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+      margin-bottom: 1rem;
+    }
+    .client-portal__ticket-viewer-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .client-portal__ticket-viewer-title {
+      font-weight: 800;
+      color: var(--cp-text);
+      margin-bottom: .15rem;
+      letter-spacing: -0.02em;
+    }
+    .client-portal__ticket-viewer-copy {
+      color: var(--cp-muted);
+      font-size: .88rem;
+      margin: 0;
+    }
+    .client-portal__ticket-viewer-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: .85rem;
+      margin-bottom: 1rem;
+    }
+    .client-portal__ticket-viewer-item {
+      border: 1px solid #dbe7f4;
+      border-radius: .95rem;
+      padding: .85rem .95rem;
+      background: rgba(255,255,255,0.9);
+    }
+    .client-portal__ticket-viewer-item span {
+      display: block;
+      color: var(--cp-muted);
+      font-size: .74rem;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin-bottom: .22rem;
+      font-weight: 700;
+    }
+    .client-portal__ticket-viewer-item strong {
+      color: var(--cp-text);
+      font-size: .96rem;
+      font-weight: 800;
+    }
+    .client-portal__ticket-viewer-body {
+      display: grid;
+      gap: .85rem;
+    }
+    .client-portal__ticket-viewer-section {
+      border: 1px solid #dfebf7;
+      border-radius: .95rem;
+      padding: .95rem 1rem;
+      background: #fff;
+    }
+    .client-portal__ticket-viewer-section h6 {
+      margin: 0 0 .45rem;
+      font-weight: 800;
+      color: var(--cp-text);
+      letter-spacing: -0.02em;
+    }
+    .client-portal__ticket-viewer-section p {
+      margin: 0;
+      color: #334155;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+    .client-portal__table thead th {
+      font-size: .72rem;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #64748b;
+      border-bottom-color: #d9e5f1;
+      white-space: nowrap;
+    }
+    .client-portal__table tbody td {
+      vertical-align: top;
+      padding-top: .85rem;
+      padding-bottom: .85rem;
+      border-bottom-color: #edf2f7;
+    }
+    .client-portal__table tbody tr:hover {
+      background: #f8fbff;
+    }
+    .client-portal__empty {
+      border: 1px dashed #cbd5e1;
+      border-radius: 1rem;
+      padding: 1rem;
+      background: #f8fafc;
+      color: var(--cp-muted);
+    }
+    .client-portal__section-stack {
+      display: grid;
+      gap: 1rem;
+      height: 100%;
+    }
+    .client-portal__tickets-card {
+      min-width: 0;
+    }
+    .client-portal__tickets-card .card-body {
+      overflow-x: auto;
+    }
+    .client-portal__tickets-card .client-portal__table {
+      min-width: 760px;
+    }
+    @media (max-width: 991px) {
+      .client-portal__hero-grid,
+      .client-portal__quick-grid,
+      .client-portal__contract-grid,
+      .client-portal__ticket-viewer-grid {
+        grid-template-columns: 1fr;
+      }
+      .client-portal__data-row,
+      .client-portal__contract-meta div {
+        flex-direction: column;
+      }
+      .client-portal__data-value,
+      .client-portal__contract-meta strong {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body class="client-portal">
+  <div id="inc-header"></div>
+
+  <main class="client-portal__dashboard flex-grow-1" id="clientDashboard">
+    <div class="container client-portal__shell py-4">
+      <div class="client-portal__hero-grid">
+        <div class="client-portal__welcome">
+          <span class="client-portal__mini-kicker">Painel do assinante</span>
+          <h2 class="h4 client-portal__welcome-title">Ola, <span id="clientName">Cliente</span></h2>
+          <p class="client-portal__welcome-copy">Aqui voce acompanha sua conexao, cobrancas e suporte com uma visao mais clara da sua assinatura.</p>
+          <div class="client-portal__quick-grid">
+            <div class="client-portal__quick-item">
+              <span class="client-portal__quick-label">Status da conta</span>
+              <span class="client-portal__quick-value" id="clientQuickStatus">Ativo</span>
+            </div>
+            <div class="client-portal__quick-item">
+              <span class="client-portal__quick-label">Proximo vencimento</span>
+              <span class="client-portal__quick-value" id="clientQuickDue">--/--/----</span>
+            </div>
+            <div class="client-portal__quick-item">
+              <span class="client-portal__quick-label">Canal de suporte</span>
+              <span class="client-portal__quick-value">Portal do cliente</span>
+            </div>
+          </div>
+        </div>
+        <aside class="client-portal__hero-side">
+          <span class="client-portal__hero-side-kicker">Central de acompanhamento</span>
+          <h3>Sua conta organizada em um unico painel.</h3>
+          <p>Consulte o que mais importa sem ficar pulando de tela: cobrancas, conexao, contrato e chamados em andamento.</p>
+          <ul class="client-portal__hero-list">
+            <li><strong>Financeiro</strong><span>Visual rapido da proxima cobranca e historico recente.</span></li>
+            <li><strong>Conexao</strong><span>Dados da instalacao e referencias da sua assinatura.</span></li>
+            <li><strong>Suporte</strong><span>Abertura de chamado com acompanhamento mais claro.</span></li>
+          </ul>
+          <button type="button" class="btn btn-outline-light btn-sm mt-3 w-100" id="btnClientLogout">Sair</button>
+        </aside>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-md-4"><div class="client-portal__mini-card" id="clientProfileBody">Carregando...</div></div>
+        <div class="col-md-4"><div class="client-portal__mini-card" id="clientConnectionBody">Carregando...</div></div>
+        <div class="col-md-4"><div class="client-portal__mini-card" id="clientBillingBody">Carregando...</div></div>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-xl-6 col-lg-12">
+          <div class="card client-portal__section-card h-100">
+            <div class="card-header bg-transparent border-0 pb-0 d-flex justify-content-between align-items-start gap-2 flex-wrap">
+              <div>
+                <h5 class="mb-0">Minhas faturas</h5>
+                <p class="text-muted small mb-0">Veja cobrancas, vencimento e status.</p>
+              </div>
+              <span class="client-portal__section-note">Financeiro atualizado</span>
+            </div>
+            <div class="card-body" id="clientInvoicesBody">
+              <p class="text-muted small mb-0">Carregando...</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-6 col-lg-12">
+          <div class="client-portal__section-stack">
+            <div class="card client-portal__section-card">
+              <div class="card-header bg-transparent border-0 pb-0 d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                <div>
+                  <h5 class="mb-0">Meu plano e contrato</h5>
+                  <p class="text-muted small mb-0">Resumo da sua assinatura, conexao e vigencia.</p>
+                </div>
+                <span class="client-portal__section-note">Dados da assinatura</span>
+              </div>
+              <div class="card-body" id="clientContractBody">
+                <p class="text-muted small mb-0">Carregando...</p>
+              </div>
+            </div>
+            <div class="card client-portal__section-card client-portal__tickets-card">
+              <div class="card-header bg-transparent border-0 pb-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                  <h5 class="mb-0">Suporte / Chamados</h5>
+                  <p class="text-muted small mb-0">Abra e acompanhe chamados.</p>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary" id="btnNewClientTicket">Novo chamado</button>
+              </div>
+              <div class="card-body">
+                <div id="clientTicketFormWrap" class="client-portal__ticket-form mb-3" style="display:none;">
+                  <div class="row g-2">
+                    <div class="col-md-6">
+                      <label class="form-label small">Assunto</label>
+                      <input type="text" class="form-control form-control-sm" id="clientTicketSubject" placeholder="Ex: Sem internet" />
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small">Categoria tecnica</label>
+                      <select class="form-select form-select-sm" id="clientTicketCategory">
+                        <option value="">Selecione</option>
+                        <option value="sem_conexao">Sem conexao</option>
+                        <option value="pppoe">PPPoE</option>
+                        <option value="onu_offline">ONU offline</option>
+                        <option value="sem_sinal_optico">Sem sinal optico</option>
+                        <option value="lentidao">Lentidao</option>
+                        <option value="wifi_ruim">Wi-Fi ruim</option>
+                      </select>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label small">Descreva o problema</label>
+                      <textarea class="form-control form-control-sm" id="clientTicketDescription" rows="4" placeholder="Conte o que esta acontecendo, quando comecou e se algum equipamento esta offline."></textarea>
+                    </div>
+                  </div>
+                  <div id="clientTicketError" class="alert alert-danger py-2 small d-none mt-2 mb-0"></div>
+                  <div class="d-flex gap-2 mt-3">
+                    <button type="button" class="btn btn-primary btn-sm" id="btnSubmitClientTicket">Abrir chamado</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnCancelClientTicket">Cancelar</button>
+                  </div>
+                </div>
+                <div id="clientTicketViewer" class="client-portal__ticket-viewer" style="display:none;"></div>
+                <div id="clientTicketsBody">
+                  <p class="text-muted small mb-0">Carregando...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="inc-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/assets/js/site.js"></script>
+  <script src="/assets/js/include.js"></script>
+  <script src="/assets/js/client-portal.js"></script>
+</body>
+</html>

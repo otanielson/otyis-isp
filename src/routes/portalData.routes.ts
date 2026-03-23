@@ -14,9 +14,20 @@ import { ensureReduzidoGroup, syncInstallationToRadius, syncPlanToRadgroupreply,
 import { authenticateWithConfig } from '../radius.js';
 import { disconnectUser, coaUpdateRate } from '../services/radiusClient.js';
 import { syncNasToRadius, removeNasFromRadius, syncAllTenantNasToRadius } from '../services/nasSync.js';
+import { sanitizeHotspotTemplateConfig } from '../services/hotspotPix.js';
 
 export const portalDataRouter = Router();
 portalDataRouter.use(requireAuth);
+
+const defaultContractTemplatePath = path.resolve(process.cwd(), 'contracts', 'contrato-padrao-servicos-telecom.html');
+
+function getDefaultContractTemplateHtml(): string {
+  try {
+    return fs.readFileSync(defaultContractTemplatePath, 'utf8').trim();
+  } catch {
+    return '<p>Contrato #{{contract_id}}</p><p>Cliente: {{customer_name}}</p><p>Plano: {{plan_code}} - R$ {{amount}} - Venc. dia {{due_day}}</p><p>{{date}}</p>';
+  }
+}
 
 function tenantId(req: Request): number {
   return req.user!.tenantId;
@@ -38,7 +49,7 @@ interface RadiusInstallationIdentity {
   slug: string | null;
 }
 
-interface RadiusPortalConfig extends RadiusInstallationIdentity {
+export interface RadiusPortalConfig extends RadiusInstallationIdentity {
   radiusHost: string | null;
   radiusPort: string;
   radiusSecret: string | null;
@@ -110,7 +121,7 @@ function isSystemdUnitActive(unit: string): boolean {
   }
 }
 
-async function readPortalRadiusConfig(
+export async function readPortalRadiusConfig(
   pool: Awaited<ReturnType<typeof getPool>>,
   tid: number
 ): Promise<RadiusPortalConfig> {
@@ -1220,6 +1231,7 @@ portalDataRouter.get('/tickets', asyncHandler(async (req: Request, res: Response
   const pool = getPool();
   const status = req.query.status as string | undefined;
   let sql = `SELECT t.id, t.customer_id, t.subject, t.priority, t.status, t.assigned_to,
+                    t.channel, t.ticket_type, t.technical_category, t.assigned_to_name, t.sla_due_at,
                     t.defect_text, t.solution_text, t.closed_at, t.created_at,
                     c.name AS customer_name, c.whatsapp AS customer_whatsapp
              FROM tickets t
@@ -1244,15 +1256,22 @@ portalDataRouter.post('/tickets', asyncHandler(async (req: Request, res: Respons
   const subject = String(body.subject || '').trim();
   const priority = ['LOW', 'NORMAL', 'HIGH', 'URGENT'].includes(String(body.priority || '').toUpperCase())
     ? String(body.priority).toUpperCase() : 'NORMAL';
+  const status = ['OPEN', 'IN_PROGRESS', 'PENDING', 'WAITING_CUSTOMER', 'EN_ROUTE', 'RESOLVED', 'CLOSED', 'CANCELLED'].includes(String(body.status || '').toUpperCase())
+    ? String(body.status).toUpperCase() : 'OPEN';
+  const channel = body.channel != null ? String(body.channel).trim().toUpperCase().slice(0, 32) || null : null;
+  const ticketType = body.ticket_type != null ? String(body.ticket_type).trim().toUpperCase().slice(0, 32) || null : null;
+  const technicalCategory = body.technical_category != null ? String(body.technical_category).trim().toUpperCase().slice(0, 64) || null : null;
+  const assignedToName = body.assigned_to_name != null ? String(body.assigned_to_name).trim().slice(0, 120) || null : null;
+  const slaDueAt = body.sla_due_at != null ? String(body.sla_due_at).trim() || null : null;
   const defectText = body.defect_text != null ? String(body.defect_text).trim() || null : null;
   const solutionText = body.solution_text != null ? String(body.solution_text).trim() || null : null;
   if (!subject) return res.status(400).json({ message: 'Assunto é obrigatório' });
 
   const pool = getPool();
   const [r] = await pool.query(
-    `INSERT INTO tickets (tenant_id, customer_id, subject, priority, status, defect_text, solution_text)
-     VALUES (:tid, :customerId, :subject, :priority, 'OPEN', :defectText, :solutionText) RETURNING id`,
-    { tid, customerId: customerId || null, subject, priority, defectText, solutionText }
+    `INSERT INTO tickets (tenant_id, customer_id, subject, priority, status, channel, ticket_type, technical_category, assigned_to_name, sla_due_at, defect_text, solution_text)
+     VALUES (:tid, :customerId, :subject, :priority, :status, :channel, :ticketType, :technicalCategory, :assignedToName, CAST(:slaDueAt AS timestamptz), :defectText, :solutionText) RETURNING id`,
+    { tid, customerId: customerId || null, subject, priority, status, channel, ticketType, technicalCategory, assignedToName, slaDueAt, defectText, solutionText }
   );
   const insertId = (r as { insertId?: number })?.insertId;
   return res.status(201).json({ ok: true, id: insertId });
@@ -1263,12 +1282,12 @@ portalDataRouter.patch('/tickets/:id', asyncHandler(async (req: Request, res: Re
   const tid = tenantId(req);
   const body = req.body || {};
   const status = body.status ? String(body.status).trim().toUpperCase() : undefined;
-  const validStatus = ['OPEN', 'IN_PROGRESS', 'PENDING', 'RESOLVED', 'CLOSED'];
+  const validStatus = ['OPEN', 'IN_PROGRESS', 'PENDING', 'WAITING_CUSTOMER', 'EN_ROUTE', 'RESOLVED', 'CLOSED', 'CANCELLED'];
   if (!id) return res.status(400).json({ message: 'ID inválido' });
   if (status && !validStatus.includes(status)) return res.status(400).json({ message: 'Status inválido' });
 
   const pool = getPool();
-  const lockedStatusTicket = ['RESOLVED', 'CLOSED'];
+  const lockedStatusTicket = ['RESOLVED', 'CLOSED', 'CANCELLED'];
   if (status) {
     const [rows] = await pool.query(
       'SELECT status FROM tickets WHERE id = :id AND tenant_id = :tid',
@@ -1299,7 +1318,27 @@ portalDataRouter.patch('/tickets/:id', asyncHandler(async (req: Request, res: Re
     updates.push('solution_text = :solutionText');
     params.solutionText = body.solution_text ? String(body.solution_text).trim() : null;
   }
-  if (status === 'RESOLVED' || status === 'CLOSED') { updates.push('closed_at = CURRENT_TIMESTAMP'); }
+  if (body.channel !== undefined) {
+    updates.push('channel = :channel');
+    params.channel = body.channel ? String(body.channel).trim().toUpperCase().slice(0, 32) : null;
+  }
+  if (body.ticket_type !== undefined) {
+    updates.push('ticket_type = :ticketType');
+    params.ticketType = body.ticket_type ? String(body.ticket_type).trim().toUpperCase().slice(0, 32) : null;
+  }
+  if (body.technical_category !== undefined) {
+    updates.push('technical_category = :technicalCategory');
+    params.technicalCategory = body.technical_category ? String(body.technical_category).trim().toUpperCase().slice(0, 64) : null;
+  }
+  if (body.assigned_to_name !== undefined) {
+    updates.push('assigned_to_name = :assignedToName');
+    params.assignedToName = body.assigned_to_name ? String(body.assigned_to_name).trim().slice(0, 120) : null;
+  }
+  if (body.sla_due_at !== undefined) {
+    updates.push('sla_due_at = CAST(:slaDueAt AS timestamptz)');
+    params.slaDueAt = body.sla_due_at ? String(body.sla_due_at).trim() : null;
+  }
+  if (status === 'RESOLVED' || status === 'CLOSED' || status === 'CANCELLED') { updates.push('closed_at = CURRENT_TIMESTAMP'); }
 
   const [result] = await pool.query(
     `UPDATE tickets SET ${updates.join(', ')} WHERE id = :id AND tenant_id = :tid`,
@@ -1500,9 +1539,9 @@ portalDataRouter.get('/contracts/:id/print', asyncHandler(async (req: Request, r
       { tid }
     );
     const tpl = Array.isArray(tplRows) && tplRows.length > 0 ? (tplRows as { body_html?: string }[])[0] : null;
-    bodyHtml = (tpl?.body_html || '').trim() || '<p>Contrato #{{contract_id}}</p><p>Cliente: {{customer_name}}</p><p>Plano: {{plan_code}} — Valor: R$ {{amount}} — Vencimento: dia {{due_day}}</p><p>Equipamentos em comodato: {{comodato_items}}</p><p>Data: {{date}}</p>';
+    bodyHtml = (tpl?.body_html || '').trim() || getDefaultContractTemplateHtml();
   } catch (e) {
-    if (isTableNotFoundError(e)) bodyHtml = '<p>Contrato #{{contract_id}}</p><p>Cliente: {{customer_name}}</p><p>Plano: {{plan_code}} — R$ {{amount}} — Venc. dia {{due_day}}</p><p>{{date}}</p>';
+    if (isTableNotFoundError(e)) bodyHtml = getDefaultContractTemplateHtml();
     else throw e;
   }
 
@@ -1563,14 +1602,14 @@ portalDataRouter.post('/contract-templates/preview', asyncHandler(async (req: Re
       { id: templateId, tid }
     );
     const tpl = Array.isArray(tplRows) && tplRows.length > 0 ? (tplRows as { body_html?: string }[])[0] : null;
-    bodyHtml = (tpl?.body_html || '').trim() || '<p>Contrato</p><p>Cliente: {{customer_name}}</p><p>Plano: {{plan_code}} — R$ {{amount}} — Venc. dia {{due_day}}</p><p>{{date}}</p>';
+    bodyHtml = (tpl?.body_html || '').trim() || getDefaultContractTemplateHtml();
   } else {
     const [tplRows] = await pool.query(
       `SELECT body_html FROM contract_templates WHERE tenant_id = :tid AND is_active IS NOT FALSE ORDER BY is_default DESC, id ASC LIMIT 1`,
       { tid }
     );
     const tpl = Array.isArray(tplRows) && tplRows.length > 0 ? (tplRows as { body_html?: string }[])[0] : null;
-    bodyHtml = (tpl?.body_html || '').trim() || '<p>Contrato</p><p>Cliente: {{customer_name}}</p><p>Plano: {{plan_code}} — R$ {{amount}} — Venc. dia {{due_day}}</p><p>{{date}}</p>';
+    bodyHtml = (tpl?.body_html || '').trim() || getDefaultContractTemplateHtml();
   }
   const today = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const replacements: Record<string, string> = {
@@ -1635,7 +1674,7 @@ portalDataRouter.post('/contracts/:id/documents', asyncHandler(async (req: Reque
     );
     const tpl = Array.isArray(tplRows) && tplRows.length > 0 ? (tplRows as { id?: number; body_html?: string }[])[0] : null;
     finalTemplateId = tpl?.id ?? null;
-    bodyHtml = (tpl?.body_html || '').trim() || '<p>Contrato #{{contract_id}}</p><p>Cliente: {{customer_name}}</p><p>Plano: {{plan_code}} — R$ {{amount}} — Venc. dia {{due_day}}</p><p>{{date}}</p>';
+    bodyHtml = (tpl?.body_html || '').trim() || getDefaultContractTemplateHtml();
   }
 
   let comodatoText = 'Nenhum equipamento em comodato vinculado a este contrato.';
@@ -5262,7 +5301,7 @@ portalDataRouter.get('/radius/config', asyncHandler(async (req: Request, res: Re
     block_redirect_url: blockRedirectUrl,
     radius_host: radius.radiusHost,
     radius_port: radius.radiusPort,
-    radius_secret: radius.radiusSecret,
+    radius_secret_configured: !!(radius.radiusSecret && String(radius.radiusSecret).trim()),
     radius_nas_ip: radius.radiusNasIp,
     radius_mode: radius.radiusMode,
     radius_service: radius.radiusService,
@@ -5302,6 +5341,880 @@ portalDataRouter.put('/radius/config', asyncHandler(async (req: Request, res: Re
 }));
 
 /** GET/POST /api/portal/vouchers — Vouchers para Hotspot / Portal Captive */
+async function ensureHotspotTemplateSeeds(
+  pool: Awaited<ReturnType<typeof getPool>>,
+  tid: number
+): Promise<void> {
+  const [defaultRows] = await pool.query(
+    'SELECT id FROM hotspot_templates WHERE tenant_id = :tid AND is_default = true LIMIT 1',
+    { tid }
+  );
+  let hasDefaultTemplate = Array.isArray(defaultRows) && defaultRows.length > 0;
+  const templates = [
+    {
+      name: 'Hotspot Simples',
+      slug: 'hotspot-simples',
+      description: 'Login básico com portal captivo e autenticação simples por usuário e senha.',
+      auth_type: 'simple_login',
+      portal_enabled: true,
+      radius_enabled: false,
+      free_minutes: 0,
+      otp_enabled: false,
+      payment_required: false,
+      payment_method: null,
+      payment_amount: null,
+      requires_phone: false,
+      requires_name: false,
+      auto_release_after_payment: false,
+      bind_mac: false,
+      session_timeout_minutes: 240,
+      redirect_url: '/wifi/sucesso',
+      is_default: false,
+      config_json: {
+        category: 'captura_basica',
+        portal_mode: 'login_basico',
+        login_mode: 'usuario_senha',
+        headline: 'Hotspot Simples (Login Básico)',
+        ideal_for: ['Pequenos provedores', 'Wi-Fi residencial', 'Comércio simples'],
+        technologies: ['MikroTik Hotspot', 'HTML simples', 'Portal captive'],
+        features: ['Redirecionamento automático para login', 'Usuário e senha básicos', 'Ativação rápida'],
+        flow_steps: ['Conectar no Wi-Fi', 'Abrir o navegador', 'Login com usuário e senha', 'Liberação do acesso'],
+        limitations: ['Visual simples', 'Sem marketing avançado', 'Sem integrações automáticas'],
+      },
+      pixPlans: []
+    },
+    {
+      name: 'Hotspot com Voucher',
+      slug: 'hotspot-voucher',
+      description: 'Acesso controlado por código com tempo e consumo configuráveis.',
+      auth_type: 'voucher',
+      portal_enabled: true,
+      radius_enabled: true,
+      free_minutes: 0,
+      otp_enabled: false,
+      payment_required: false,
+      payment_method: null,
+      payment_amount: null,
+      requires_phone: false,
+      requires_name: false,
+      auto_release_after_payment: false,
+      bind_mac: true,
+      session_timeout_minutes: 1440,
+      redirect_url: '/wifi/voucher',
+      is_default: false,
+      config_json: {
+        category: 'autenticacao',
+        portal_mode: 'voucher',
+        login_mode: 'codigo',
+        headline: 'Hotspot com Voucher (Código)',
+        ideal_for: ['Hotéis', 'Praças públicas', 'Eventos', 'Recepções'],
+        technologies: ['MikroTik Hotspot', 'FreeRADIUS', 'Impressão de vouchers'],
+        features: ['Tempo limitado', 'Controle de banda', 'Códigos únicos', 'Regras por dados'],
+        flow_steps: ['Gerar voucher', 'Entregar código', 'Cliente autentica no portal', 'Sessão controlada por tempo/dados'],
+        monetization: ['Pode ser gratuito', 'Pode ser vendido no balcão', 'Pode ser integrado ao ERP'],
+      },
+      pixPlans: []
+    },
+    {
+      name: 'Portal Captivo com Telefone',
+      slug: 'portal-telefone',
+      description: 'Portal captivo com captura de telefone, OTP opcional e foco em captação de leads.',
+      auth_type: 'phone',
+      portal_enabled: true,
+      radius_enabled: false,
+      free_minutes: 0,
+      otp_enabled: true,
+      payment_required: false,
+      payment_method: null,
+      payment_amount: null,
+      requires_phone: true,
+      requires_name: false,
+      auto_release_after_payment: false,
+      bind_mac: true,
+      session_timeout_minutes: 60,
+      redirect_url: '/wifi/sucesso',
+      is_default: false,
+      config_json: {
+        category: 'captura_lead',
+        portal_mode: 'lead_capture',
+        login_mode: 'phone',
+        headline: 'Portal Captivo com Login por Telefone',
+        ideal_for: ['Praças Wi-Fi', 'Eventos', 'Wi-Fi de recepção', 'Captação de leads'],
+        technologies: ['Portal captivo', 'WhatsApp OTP', 'Node.js API'],
+        features: ['Captura do número', 'OTP opcional', 'Redirecionamento pós-login', 'Sessão por tempo'],
+        flow_steps: ['Cliente conecta no Wi-Fi', 'Portal abre automaticamente', 'Informa telefone', 'Confirma OTP ou segue', 'Sistema libera o acesso'],
+        lead_capture: true,
+        login_label: 'Informe seu telefone para acessar',
+        use_whatsapp_otp: true,
+        requires_lgpd_consent: true,
+      },
+      pixPlans: []
+    },
+    {
+      name: 'Login Social',
+      slug: 'login-social',
+      description: 'Portal de acesso com login social e captação de leads para marketing Wi-Fi.',
+      auth_type: 'social',
+      portal_enabled: true,
+      radius_enabled: false,
+      free_minutes: 0,
+      otp_enabled: true,
+      payment_required: false,
+      payment_method: null,
+      payment_amount: null,
+      requires_phone: true,
+      requires_name: true,
+      auto_release_after_payment: false,
+      bind_mac: true,
+      session_timeout_minutes: 120,
+      redirect_url: '/wifi/social-ok',
+      is_default: false,
+      config_json: {
+        category: 'captura_lead',
+        portal_mode: 'social_login',
+        login_mode: 'social',
+        headline: 'Hotspot com Login Social',
+        ideal_for: ['Wi-Fi marketing', 'Provedores focados em marca', 'Campanhas com captação de leads'],
+        technologies: ['Facebook Login', 'Google Login', 'WhatsApp OTP'],
+        features: ['Coleta de leads', 'Login fácil', 'Ações de marketing', 'Cadastro enriquecido'],
+        flow_steps: ['Cliente conecta', 'Escolhe Facebook, Google ou WhatsApp', 'Autoriza login', 'Sistema libera acesso e registra lead'],
+        providers: ['facebook', 'google', 'whatsapp_otp'],
+      },
+      pixPlans: []
+    },
+    {
+      name: 'Portal Captivo Personalizado',
+      slug: 'portal-captivo-personalizado',
+      description: 'Modelo profissional com landing page customizada, banner, promoções e CTA comercial.',
+      auth_type: 'custom_portal',
+      portal_enabled: true,
+      radius_enabled: true,
+      free_minutes: 0,
+      otp_enabled: false,
+      payment_required: false,
+      payment_method: null,
+      payment_amount: null,
+      requires_phone: false,
+      requires_name: false,
+      auto_release_after_payment: false,
+      bind_mac: true,
+      session_timeout_minutes: 240,
+      redirect_url: '/wifi/landing',
+      is_default: false,
+      config_json: {
+        category: 'portal_profissional',
+        portal_mode: 'custom_landing',
+        login_mode: 'custom',
+        headline: 'Portal Captivo Personalizado',
+        ideal_for: ['Portal Multi Telecom', 'Upgrade de plano', 'Ações comerciais em Wi-Fi'],
+        technologies: ['HTML', 'CSS', 'JS', 'Node.js API', 'FreeRADIUS', 'MikroTik'],
+        features: ['Banner', 'Promoções', 'CTA WhatsApp', 'Upgrade de plano', 'Integração com portal'],
+        flow_steps: ['Cliente conecta', 'Visualiza landing page personalizada', 'Escolhe a ação', 'Autentica ou solicita atendimento'],
+        ctas: ['Assine fibra', 'Upgrade de plano', 'Falar no WhatsApp'],
+      },
+      pixPlans: []
+    },
+    {
+      name: 'Autenticação RADIUS por Usuário',
+      slug: 'login-radius',
+      description: 'Hotspot com autenticação usando usuário e senha já cadastrados no RADIUS.',
+      auth_type: 'radius',
+      portal_enabled: true,
+      radius_enabled: true,
+      free_minutes: 0,
+      otp_enabled: false,
+      payment_required: false,
+      payment_method: null,
+      payment_amount: null,
+      requires_phone: false,
+      requires_name: false,
+      auto_release_after_payment: false,
+      bind_mac: true,
+      session_timeout_minutes: 720,
+      redirect_url: '/portal/dashboard',
+      is_default: false,
+      config_json: {
+        category: 'autenticacao',
+        mode: 'radius_login',
+        mac_cookie: true,
+        reauth_enabled: true,
+        rate_limit_source: 'plan',
+        headline: 'Hotspot Integrado com RADIUS',
+        ideal_for: ['Clientes do provedor', 'Planos autenticados', 'Controle de banda por login'],
+        technologies: ['MikroTik', 'FreeRADIUS', 'ERP / OTYIS ISP'],
+        features: ['Controle de sessão', 'Rate-limit por plano', 'Bloqueio automático', 'Integração financeira'],
+        flow_steps: ['Cliente conecta', 'Informa usuário e senha', 'RADIUS valida', 'Sessão é liberada conforme plano'],
+      },
+      pixPlans: []
+    },
+    {
+      name: 'Acesso Rápido 2 Minutos + Pix',
+      slug: '2min-pix',
+      description: 'Liberação imediata de 2 minutos e cobrança posterior via Pix com reativação automática.',
+      auth_type: 'temporary_pix',
+      portal_enabled: true,
+      radius_enabled: false,
+      free_minutes: 2,
+      otp_enabled: false,
+      payment_required: true,
+      payment_method: 'pix',
+      payment_amount: 2.0,
+      requires_phone: true,
+      requires_name: false,
+      auto_release_after_payment: true,
+      bind_mac: true,
+      session_timeout_minutes: 60,
+      redirect_url: '/wifi/pagamento-aprovado',
+      is_default: true,
+      config_json: {
+        category: 'monetizacao',
+        mode: 'freemium_pix',
+        free_access_before_payment: true,
+        block_after_free: true,
+        qr_code_expiration_minutes: 10,
+        gateway_hint: 'efi',
+        hotspot_gateway_name: 'EFI Hotspot',
+        hotspot_gateway_type: 'efi',
+        hotspot_pix_key: 'SUA_CHAVE_PIX_EFI',
+        hotspot_webhook_url: 'https://api.seudominio.com/hotspot/pix/efi/webhook',
+        headline: '2 Minutos Grátis + Pix',
+        ideal_for: ['Wi-Fi público monetizado', 'Eventos', 'Acesso rápido pago'],
+        technologies: ['Portal captivo', 'Pix', 'Webhook', 'Liberação automática'],
+        features: ['2 minutos grátis', 'Cobrança via Pix', 'QR Code', 'Liberação automática após pagamento'],
+        flow_steps: ['Cliente conecta', 'Recebe 2 minutos grátis', 'Tempo expira', 'Paga via Pix', 'Acesso é liberado novamente'],
+      },
+      pixPlans: [
+        { name: 'Pix 30 Min', price: 1.0, duration_minutes: 30, sort_order: 1 },
+        { name: 'Pix 1 Hora', price: 2.0, duration_minutes: 60, sort_order: 2 },
+        { name: 'Pix 1 Dia', price: 5.0, duration_minutes: 1440, sort_order: 3 },
+        { name: 'Pix 7 Dias', price: 10.0, duration_minutes: 10080, sort_order: 4 },
+      ]
+    },
+    {
+      name: 'Hotspot Pix',
+      slug: 'hotspot-pix',
+      description: 'Acesso pago via Pix com escolha de plano, QR Code e liberação automática após confirmação.',
+      auth_type: 'pix',
+      portal_enabled: true,
+      radius_enabled: false,
+      free_minutes: 0,
+      otp_enabled: false,
+      payment_required: true,
+      payment_method: 'pix',
+      payment_amount: 2.0,
+      requires_phone: true,
+      requires_name: false,
+      auto_release_after_payment: true,
+      bind_mac: true,
+      session_timeout_minutes: 60,
+      redirect_url: '/wifi/pix-ok',
+      is_default: false,
+      config_json: {
+        category: 'monetizacao',
+        portal_mode: 'pix_access',
+        login_mode: 'pix',
+        hotspot_gateway_name: 'EFI Hotspot',
+        hotspot_gateway_type: 'efi',
+        hotspot_pix_key: 'SUA_CHAVE_PIX_EFI',
+        hotspot_webhook_url: 'https://api.seudominio.com/hotspot/pix/efi/webhook',
+        headline: 'Acesso via Pix',
+        ideal_for: ['Wi-Fi pago', 'Hotspot em eventos', 'Acesso diário ou semanal'],
+        technologies: ['Pix', 'Webhook', 'MikroTik Hotspot', 'FreeRADIUS'],
+        features: ['QR Code Pix', 'Copia e cola', 'Liberação automática', 'Vínculo por MAC'],
+        flow_steps: ['Cliente conecta', 'Escolhe um plano', 'Paga via Pix', 'Webhook confirma', 'Sistema libera o acesso'],
+        gateways_supported: ['EFI'],
+      },
+      pixPlans: [
+        { name: 'Pix 30 Min', price: 1.0, duration_minutes: 30, sort_order: 1 },
+        { name: 'Pix 1 Hora', price: 2.0, duration_minutes: 60, sort_order: 2 },
+        { name: 'Pix 1 Dia', price: 5.0, duration_minutes: 1440, sort_order: 3 },
+        { name: 'Pix 7 Dias', price: 10.0, duration_minutes: 10080, sort_order: 4 },
+      ]
+    }
+  ];
+
+  for (const template of templates) {
+    const [existingRows] = await pool.query(
+      'SELECT id FROM hotspot_templates WHERE tenant_id = :tid AND slug = :slug LIMIT 1',
+      { tid, slug: template.slug }
+    );
+    const existing = Array.isArray(existingRows) && existingRows[0] ? (existingRows[0] as { id: number }) : null;
+    let templateId = existing?.id ?? 0;
+    if (existing) {
+      await pool.query(
+        `UPDATE hotspot_templates SET
+           name = :name,
+           description = :description,
+           auth_type = :auth_type,
+           portal_enabled = :portal_enabled,
+           radius_enabled = :radius_enabled,
+           free_minutes = :free_minutes,
+           otp_enabled = :otp_enabled,
+           payment_required = :payment_required,
+           payment_method = :payment_method,
+           payment_amount = :payment_amount,
+           requires_phone = :requires_phone,
+           requires_name = :requires_name,
+           auto_release_after_payment = :auto_release_after_payment,
+           bind_mac = :bind_mac,
+           session_timeout_minutes = :session_timeout_minutes,
+           redirect_url = :redirect_url,
+           config_json = :config_json::jsonb,
+           is_active = true,
+           updated_at = CURRENT_TIMESTAMP
+         WHERE tenant_id = :tid AND id = :id`,
+        {
+          tid,
+          id: templateId,
+          ...template,
+          config_json: JSON.stringify(template.config_json || {}),
+        }
+      );
+    } else {
+      const shouldBeDefault = !hasDefaultTemplate && !!template.is_default;
+      const [insRows] = await pool.query(
+        `INSERT INTO hotspot_templates (
+         tenant_id, name, slug, description, auth_type, portal_enabled, radius_enabled,
+         free_minutes, otp_enabled, payment_required, payment_method, payment_amount,
+         requires_phone, requires_name, auto_release_after_payment, bind_mac,
+         session_timeout_minutes, redirect_url, config_json, is_default, is_active
+        ) VALUES (
+         :tid, :name, :slug, :description, :auth_type, :portal_enabled, :radius_enabled,
+         :free_minutes, :otp_enabled, :payment_required, :payment_method, :payment_amount,
+         :requires_phone, :requires_name, :auto_release_after_payment, :bind_mac,
+         :session_timeout_minutes, :redirect_url, :config_json::jsonb, :is_default, true
+       ) RETURNING id`,
+        {
+          tid,
+          ...template,
+          is_default: shouldBeDefault,
+          config_json: JSON.stringify(template.config_json || {}),
+        }
+      );
+      templateId = Array.isArray(insRows) && insRows[0] ? Number((insRows[0] as { id: number }).id) : 0;
+      if (templateId && shouldBeDefault) {
+        hasDefaultTemplate = true;
+      }
+    }
+    if (!templateId) continue;
+    await pool.query('DELETE FROM hotspot_template_pix_plans WHERE tenant_id = :tid AND template_id = :template_id', { tid, template_id: templateId });
+    for (const plan of template.pixPlans) {
+      await pool.query(
+        `INSERT INTO hotspot_template_pix_plans (
+           tenant_id, template_id, name, price, duration_minutes, sort_order, active
+         ) VALUES (
+           :tid, :template_id, :name, :price, :duration_minutes, :sort_order, true
+         )`,
+        { tid, template_id: templateId, ...plan }
+      );
+    }
+  }
+}
+
+function slugToRouterId(value: string): string {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase() || 'wifi';
+}
+
+export function readHotspotTemplateConfig(template: { config_json?: unknown }): Record<string, unknown> {
+  return template.config_json && typeof template.config_json === 'object'
+    ? (template.config_json as Record<string, unknown>)
+    : {};
+}
+
+export function configString(cfg: Record<string, unknown>, key: string): string | null {
+  const value = cfg[key];
+  if (value == null) return null;
+  const normalized = String(value).trim();
+  return normalized || null;
+}
+
+export function configNumber(cfg: Record<string, unknown>, key: string): number | null {
+  const value = cfg[key];
+  if (value == null || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function configStringArray(cfg: Record<string, unknown>, key: string): string[] {
+  const value = cfg[key];
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => String(item || '').trim()).filter(Boolean);
+}
+
+function dbBool(value: unknown): boolean {
+  return value === true || value === 1 || value === '1' || value === 't' || value === 'true' || value === 'yes';
+}
+
+export function buildMikrotikHotspotConfig(params: {
+  template: {
+    id: number;
+    name: string;
+    slug: string;
+    auth_type: string;
+    portal_enabled: boolean;
+    radius_enabled: boolean;
+    free_minutes: number;
+    otp_enabled: boolean;
+    payment_required: boolean;
+    payment_method: string | null;
+    bind_mac: boolean;
+    session_timeout_minutes: number;
+    redirect_url: string | null;
+    config_json?: unknown;
+  };
+  radius: RadiusPortalConfig;
+  interfaceName: string;
+  bridgeName: string;
+  hotspotAddress: string;
+  hotspotMask: number;
+  poolStart: string;
+  poolEnd: string;
+  dnsName: string;
+  ssid: string;
+  radiusHostOverride: string | null;
+  radiusPortOverride: string | null;
+  radiusNasIpOverride: string | null;
+  coaPort: number;
+  portalUrl: string | null;
+  paymentGatewayHost: string | null;
+  walledGardenHosts: string[];
+}): {
+  script: string;
+  fileName: string;
+  summary: string[];
+  warnings: string[];
+} {
+  const template = params.template;
+  const cfg = template.config_json && typeof template.config_json === 'object'
+    ? (template.config_json as Record<string, unknown>)
+    : {};
+  const routerId = slugToRouterId(template.slug || template.name || 'wifi');
+  const hotspotName = `hs-${routerId}`;
+  const profileName = `hsprof-${routerId}`;
+  const userProfileName = `hsuser-${routerId}`;
+  const poolName = `pool-${routerId}`;
+  const radiusHost = params.radiusHostOverride || params.radius.radiusHost || 'SEU_IP_RADIUS';
+  const radiusPort = params.radiusPortOverride || params.radius.radiusPort || '1812';
+  const radiusSecret = '__PREENCHER_SECRET_RADIUS_COM_SEGURANCA__';
+  const radiusNasIp = normalizeNasIp(params.radiusNasIpOverride || params.radius.radiusNasIp) || params.hotspotAddress;
+  const loginMode = String(cfg.login_mode || template.auth_type || 'simple_login').toLowerCase();
+  const authType = String(template.auth_type || 'simple_login').toLowerCase();
+  const isVoucher = authType === 'voucher';
+  const isRadius = authType === 'radius';
+  const isPhone = authType === 'phone';
+  const isSocial = authType === 'social';
+  const isPix = authType === 'pix' || authType === 'temporary_pix';
+  const isCustomPortal = authType === 'custom_portal';
+  const paymentUrl = template.redirect_url || '/wifi/pagamento';
+  const portalHost = (params.portalUrl || '').replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+  const paymentHost = (params.paymentGatewayHost || paymentUrl || '').replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+  const loginBy = isRadius
+    ? 'http-pap,http-chap,cookie,mac-cookie'
+    : isVoucher
+      ? 'http-pap,cookie'
+      : isPhone || isSocial || isPix || isCustomPortal
+        ? 'http-pap,https,cookie'
+        : 'http-pap,http-chap,cookie';
+  const trialUptimeLimit = template.free_minutes > 0 ? `${template.free_minutes}m` : '';
+  const scriptLines = [
+    `# Template Wi-Fi: ${template.name}`,
+    `# Gerado pelo Portal do Provedor em ${new Date().toISOString()}`,
+    `# Cenário cloud-first: MikroTik remoto + portal cloud + RADIUS cloud.`,
+    '',
+    `/interface wireless set [ find default-name=wlan1 ] ssid="${params.ssid}" disabled=no`,
+    `/ip pool add name="${poolName}" ranges=${params.poolStart}-${params.poolEnd}`,
+    `/ip address add address=${params.hotspotAddress}/${params.hotspotMask} interface=${params.bridgeName} comment="Hotspot ${template.name}"`,
+    `/ip hotspot profile add name="${profileName}" hotspot-address=${params.hotspotAddress} dns-name=${params.dnsName} login-by=${loginBy} html-directory=hotspot use-radius=${template.radius_enabled ? 'yes' : 'no'} radius-accounting=yes`,
+    `/ip hotspot user profile add name="${userProfileName}" ${template.session_timeout_minutes > 0 ? `session-timeout=${template.session_timeout_minutes}m ` : ''}${template.bind_mac ? 'address-list=wifi-autenticados shared-users=1 mac-cookie-timeout=3d ' : 'shared-users=1 '}${trialUptimeLimit ? `on-login="/ip hotspot user set [find where name=\\\"$user\\\"] limit-uptime=${trialUptimeLimit}" ` : ''}`.trim(),
+    `/ip hotspot add name="${hotspotName}" interface=${params.interfaceName} address-pool="${poolName}" profile="${profileName}" idle-timeout=5m keepalive-timeout=2m addresses-per-mac=2`,
+    `/radius add service=hotspot address=${radiusHost} secret="${radiusSecret}" authentication-port=${radiusPort} accounting-port=1813 timeout=300ms`,
+    `/radius incoming set accept=yes port=${params.coaPort}`,
+    `/ip hotspot set ${hotspotName} addresses-per-mac=2 idle-timeout=5m`,
+    `/ip hotspot walled-garden ip add action=accept disabled=no dst-host=${params.dnsName}`,
+  ];
+  if (template.radius_enabled) {
+    scriptLines.push(`/ip hotspot profile set "${profileName}" use-radius=yes radius-interim-update=5m nas-port-type=wireless-802.11`);
+    scriptLines.push(`/radius incoming set accept=yes port=3799`);
+  }
+  if (params.radius.radiusNasIp) {
+    scriptLines.push(`/ip hotspot profile set "${profileName}" nas-port-type=wireless-802.11`);
+  }
+  if (template.portal_enabled) {
+    scriptLines.push(`# Portal cloud: a landing page deve estar acessível em ${params.portalUrl || 'https://portal.seudominio.com/hotspot'}.`);
+  }
+  if (isPhone) {
+    scriptLines.push(`# Fluxo sugerido: cliente informa telefone, OTP opcional e o backend libera a sessão por MAC/IP.`);
+    scriptLines.push(`/ip hotspot walled-garden ip add action=accept disabled=no dst-host=api.whatsapp.com`);
+  }
+  if (isSocial) {
+    scriptLines.push(`# Fluxo sugerido: login social com Google/Facebook/WhatsApp no portal captivo.`);
+    scriptLines.push(`/ip hotspot walled-garden ip add action=accept disabled=no dst-host=accounts.google.com`);
+    scriptLines.push(`/ip hotspot walled-garden ip add action=accept disabled=no dst-host=facebook.com`);
+  }
+  if (isVoucher) {
+    scriptLines.push(`# Vouchers são autenticados no RADIUS como voucher_ID / código.`);
+    scriptLines.push(`/ip hotspot user profile set "${userProfileName}" shared-users=1`);
+  }
+  if (isPix) {
+    scriptLines.push(`# Fluxo Pix: manter landing page e webhook; ao pagar, liberar por MAC ou usuário temporário.`);
+    scriptLines.push(`/ip hotspot walled-garden ip add action=accept disabled=no dst-host=${paymentHost || 'SEU_GATEWAY_PIX'}`);
+    if (trialUptimeLimit) {
+      scriptLines.push(`/ip hotspot profile set "${profileName}" trial-uptime-limit=${trialUptimeLimit} trial-reset=1d`);
+    }
+  }
+  if (isCustomPortal) {
+    scriptLines.push(`# Portal customizado: personalize hotspot/login.html com CTA, banners e integrações do provedor.`);
+  }
+  for (const host of params.walledGardenHosts) {
+    scriptLines.push(`/ip hotspot walled-garden ip add action=accept disabled=no dst-host=${host}`);
+  }
+  if (portalHost) {
+    scriptLines.push(`/ip hotspot walled-garden ip add action=accept disabled=no dst-host=${portalHost}`);
+  }
+  scriptLines.push(
+    '',
+    '# Recomendado para cloud',
+    `# 1. Garanta saída HTTPS do MikroTik para ${portalHost || 'seu-portal-cloud'}`,
+    `# 2. Libere UDP ${radiusPort}/1813 para ${radiusHost}`,
+    `# 3. Garanta que o RADIUS aceite o NAS IP ${radiusNasIp}`,
+    `# 4. Se usar CoA/Disconnect, libere UDP ${params.coaPort} do cloud para o MikroTik`,
+    `# 5. Teste login, accounting e captive portal antes de produção`
+  );
+
+  const summary = [
+    `Template: ${template.name}`,
+    `Hotspot: ${hotspotName}`,
+    `Bridge/interface: ${params.bridgeName} / ${params.interfaceName}`,
+    `RADIUS: ${radiusHost}:${radiusPort}`,
+    `NAS remoto: ${radiusNasIp}`,
+    `Portal cloud: ${params.portalUrl || 'não informado'}`,
+    `Portal captivo: ${template.portal_enabled ? 'sim' : 'não'}`,
+    `Autenticação: ${loginMode}`,
+  ];
+  const warnings: string[] = [];
+  if (!params.radius.radiusHost || !params.radius.radiusSecret) {
+    warnings.push('RADIUS não está totalmente configurado no portal. Revise host e secret no ambiente administrativo antes de aplicar no MikroTik.');
+  }
+  warnings.push('O secret do RADIUS não é exibido no portal por segurança. O script .rsc sai com placeholder e deve ser completado em ambiente administrativo seguro.');
+  if (!params.radius.radiusNasIp) {
+    warnings.push('NAS IP não está definido no sistema. Ajuste o NAS/IP do MikroTik para evitar rejeições no RADIUS.');
+  }
+  if (!params.portalUrl) {
+    warnings.push('Informe a URL do portal cloud para liberar corretamente o captive portal e o walled garden.');
+  }
+  if (isPix) {
+    warnings.push('Modelos Pix dependem de landing page, webhook de pagamento e automação de liberação após confirmação.');
+  }
+  if (isPhone || isSocial) {
+    warnings.push('Modelos com telefone/login social dependem do portal captivo e da API para validar login e liberar a sessão.');
+  }
+  return {
+    script: scriptLines.filter(Boolean).join('\n'),
+    fileName: `mikrotik-${routerId}.rsc`,
+    summary,
+    warnings,
+  };
+}
+
+portalDataRouter.get('/wifi/templates', asyncHandler(async (req: Request, res: Response): Promise<Response> => {
+  const tid = tenantId(req);
+  const pool = getPool();
+  try {
+    await ensureHotspotTemplateSeeds(pool, tid);
+    const [templateRows] = await pool.query(
+      `SELECT id, name, slug, description, auth_type, portal_enabled, radius_enabled,
+              free_minutes, otp_enabled, payment_required, payment_method, payment_amount,
+              requires_phone, requires_name, auto_release_after_payment, bind_mac,
+              session_timeout_minutes, redirect_url, is_default, is_active, config_json,
+              created_at, updated_at
+       FROM hotspot_templates
+       WHERE tenant_id = :tid
+       ORDER BY is_default DESC, name ASC`,
+      { tid }
+    );
+    const [planRows] = await pool.query(
+      `SELECT id, tenant_id, template_id, name, price, duration_minutes, sort_order, active
+       FROM hotspot_template_pix_plans
+       WHERE tenant_id = :tid
+       ORDER BY template_id ASC, sort_order ASC, id ASC`,
+      { tid }
+    );
+    const templates = Array.isArray(templateRows) ? templateRows : [];
+    const plans = Array.isArray(planRows) ? planRows : [];
+    const plansByTemplate = new Map<number, unknown[]>();
+    for (const row of plans as { template_id: number }[]) {
+      const key = Number(row.template_id);
+      if (!plansByTemplate.has(key)) plansByTemplate.set(key, []);
+      plansByTemplate.get(key)!.push(row);
+    }
+    const rows = (templates as { id: number }[]).map((row) => ({
+      ...row,
+      is_default: dbBool((row as { is_default?: unknown }).is_default),
+      is_active: dbBool((row as { is_active?: unknown }).is_active),
+      config_json: sanitizeHotspotTemplateConfig((row as { config_json?: unknown }).config_json, { includeSecrets: false }),
+      pix_plans: plansByTemplate.get(Number(row.id)) || [],
+    }));
+    return res.json({ ok: true, rows });
+  } catch (e) {
+    if (isTableNotFoundError(e)) {
+      return res.status(503).json({ message: 'Tabela hotspot_templates não existe. Execute sql/hotspot_templates.sql' });
+    }
+    throw e;
+  }
+}));
+
+portalDataRouter.get('/wifi/finance-summary', asyncHandler(async (req: Request, res: Response): Promise<Response> => {
+  const tid = tenantId(req);
+  const pool = getPool();
+  try {
+    const [summaryRows] = await pool.query(
+      `SELECT
+          COUNT(*)::int AS total_sessions,
+          COUNT(*) FILTER (WHERE UPPER(COALESCE(status, '')) IN ('PAID', 'RELEASED'))::int AS paid_sessions,
+          COUNT(*) FILTER (WHERE UPPER(COALESCE(status, '')) = 'RELEASED')::int AS released_sessions,
+          COUNT(*) FILTER (WHERE UPPER(COALESCE(status, '')) IN ('ATIVA', 'PENDING'))::int AS pending_sessions,
+          COUNT(*) FILTER (WHERE UPPER(COALESCE(status, '')) = 'EXPIRED')::int AS expired_sessions,
+          COALESCE(SUM(CASE WHEN UPPER(COALESCE(status, '')) IN ('PAID', 'RELEASED') THEN amount ELSE 0 END), 0)::numeric(12,2) AS gross_revenue,
+          COALESCE(SUM(CASE WHEN UPPER(COALESCE(status, '')) IN ('PAID', 'RELEASED') AND created_at >= date_trunc('month', CURRENT_TIMESTAMP) THEN amount ELSE 0 END), 0)::numeric(12,2) AS revenue_month,
+          COUNT(*) FILTER (WHERE created_at >= date_trunc('month', CURRENT_TIMESTAMP))::int AS sessions_month
+       FROM hotspot_payment_sessions
+       WHERE tenant_id = :tid`,
+      { tid }
+    );
+    const [voucherRows] = await pool.query(
+      `SELECT
+          COUNT(*)::int AS total_vouchers,
+          COUNT(*) FILTER (WHERE used_at IS NOT NULL)::int AS used_vouchers,
+          COUNT(*) FILTER (WHERE used_at IS NULL)::int AS available_vouchers
+       FROM vouchers
+       WHERE tenant_id = :tid`,
+      { tid }
+    );
+    const [recentRows] = await pool.query(
+      `SELECT
+          s.id,
+          s.status,
+          s.amount,
+          s.gateway_type,
+          s.plan_name,
+          s.payer_name,
+          s.payer_phone,
+          s.created_at,
+          s.paid_at,
+          s.released_at,
+          t.name AS template_name
+       FROM hotspot_payment_sessions s
+       LEFT JOIN hotspot_templates t ON t.id = s.template_id
+       WHERE s.tenant_id = :tid
+       ORDER BY s.id DESC
+       LIMIT 12`,
+      { tid }
+    );
+    const [planRows] = await pool.query(
+      `SELECT
+          COALESCE(NULLIF(TRIM(s.plan_name), ''), p.name, 'Plano não identificado') AS plan_name,
+          COUNT(*)::int AS total_sales,
+          COUNT(*) FILTER (WHERE UPPER(COALESCE(s.status, '')) IN ('PAID', 'RELEASED'))::int AS paid_sales,
+          COALESCE(SUM(CASE WHEN UPPER(COALESCE(s.status, '')) IN ('PAID', 'RELEASED') THEN s.amount ELSE 0 END), 0)::numeric(12,2) AS revenue
+       FROM hotspot_payment_sessions s
+       LEFT JOIN hotspot_template_pix_plans p ON p.id = s.plan_id
+       WHERE s.tenant_id = :tid
+       GROUP BY COALESCE(NULLIF(TRIM(s.plan_name), ''), p.name, 'Plano não identificado')
+       ORDER BY revenue DESC, total_sales DESC, plan_name ASC
+       LIMIT 8`,
+      { tid }
+    );
+    const [templateRows] = await pool.query(
+      `SELECT
+          COUNT(*) FILTER (WHERE is_active = true)::int AS active_templates,
+          COUNT(*) FILTER (WHERE is_default = true)::int AS default_templates,
+          MAX(CASE WHEN is_default = true THEN name END) AS default_template_name
+       FROM hotspot_templates
+       WHERE tenant_id = :tid`,
+      { tid }
+    );
+
+    const summary = Array.isArray(summaryRows) && summaryRows[0] ? (summaryRows[0] as Record<string, unknown>) : {};
+    const voucher = Array.isArray(voucherRows) && voucherRows[0] ? (voucherRows[0] as Record<string, unknown>) : {};
+    const template = Array.isArray(templateRows) && templateRows[0] ? (templateRows[0] as Record<string, unknown>) : {};
+
+    return res.json({
+      ok: true,
+      summary: {
+        total_sessions: Number(summary.total_sessions || 0),
+        paid_sessions: Number(summary.paid_sessions || 0),
+        released_sessions: Number(summary.released_sessions || 0),
+        pending_sessions: Number(summary.pending_sessions || 0),
+        expired_sessions: Number(summary.expired_sessions || 0),
+        gross_revenue: Number(summary.gross_revenue || 0),
+        revenue_month: Number(summary.revenue_month || 0),
+        sessions_month: Number(summary.sessions_month || 0),
+        total_vouchers: Number(voucher.total_vouchers || 0),
+        used_vouchers: Number(voucher.used_vouchers || 0),
+        available_vouchers: Number(voucher.available_vouchers || 0),
+        active_templates: Number(template.active_templates || 0),
+        default_template_name: template.default_template_name ? String(template.default_template_name) : null,
+      },
+      recent_sessions: Array.isArray(recentRows) ? recentRows : [],
+      top_plans: Array.isArray(planRows) ? planRows : [],
+    });
+  } catch (e) {
+    if (isTableNotFoundError(e)) {
+      return res.status(503).json({ message: 'Tabelas do hotspot não existem. Execute sql/hotspot_templates.sql e sql/radius_advanced.pg.sql' });
+    }
+    throw e;
+  }
+}));
+
+portalDataRouter.get('/wifi/mikrotik-config', asyncHandler(async (req: Request, res: Response): Promise<Response> => {
+  const tid = tenantId(req);
+  const pool = getPool();
+  const templateId = Number(req.query.template_id || 0);
+  try {
+    await ensureHotspotTemplateSeeds(pool, tid);
+    const [rows] = await pool.query(
+      `SELECT id, name, slug, description, auth_type, portal_enabled, radius_enabled,
+              free_minutes, otp_enabled, payment_required, payment_method, payment_amount,
+              requires_phone, requires_name, auto_release_after_payment, bind_mac,
+              session_timeout_minutes, redirect_url, is_default, is_active, config_json
+       FROM hotspot_templates
+       WHERE tenant_id = :tid AND is_active = true
+       ${templateId ? 'AND id = :templateId' : ''}
+       ORDER BY is_default DESC, name ASC
+       LIMIT 1`,
+      templateId ? { tid, templateId } : { tid }
+    );
+    const template = Array.isArray(rows) && rows[0]
+      ? (rows[0] as {
+          id: number;
+          name: string;
+          slug: string;
+          auth_type: string;
+          portal_enabled: boolean;
+          radius_enabled: boolean;
+          free_minutes: number;
+          otp_enabled: boolean;
+          payment_required: boolean;
+          payment_method: string | null;
+          bind_mac: boolean;
+          session_timeout_minutes: number;
+          redirect_url: string | null;
+          config_json?: unknown;
+        })
+      : null;
+    if (!template) return res.status(404).json({ message: 'Template Wi-Fi não encontrado.' });
+    const radius = await readPortalRadiusConfig(pool, tid);
+    const cfg = readHotspotTemplateConfig(template);
+    const origin = `${req.protocol}://${req.get('host') || 'localhost'}`;
+    const defaultPortalUrl = configString(cfg, 'mikrotik_portal_url')
+      || `${origin}/hotspot/${radius.slug || process.env.TENANT_SLUG || 'tenant'}/${template.slug}`;
+    const interfaceName = String(req.query.interface || configString(cfg, 'mikrotik_interface') || 'bridge-hotspot').trim() || 'bridge-hotspot';
+    const bridgeName = String(req.query.bridge || configString(cfg, 'mikrotik_bridge') || interfaceName).trim() || interfaceName;
+    const hotspotAddress = String(req.query.hotspot_address || configString(cfg, 'mikrotik_hotspot_address') || '10.10.10.1').trim() || '10.10.10.1';
+    const hotspotMask = Math.min(30, Math.max(24, Number(req.query.hotspot_mask || configNumber(cfg, 'mikrotik_hotspot_mask') || 24) || 24));
+    const poolStart = String(req.query.pool_start || configString(cfg, 'mikrotik_pool_start') || '10.10.10.10').trim() || '10.10.10.10';
+    const poolEnd = String(req.query.pool_end || configString(cfg, 'mikrotik_pool_end') || '10.10.10.254').trim() || '10.10.10.254';
+    const dnsName = String(req.query.dns_name || configString(cfg, 'mikrotik_dns_name') || 'login.multi.local').trim() || 'login.multi.local';
+    const ssid = String(req.query.ssid || configString(cfg, 'mikrotik_ssid') || 'WiFi Multi').trim() || 'WiFi Multi';
+    const radiusHostOverride = req.query.radius_host != null ? String(req.query.radius_host).trim() || null : (configString(cfg, 'hotspot_radius_host') || null);
+    const radiusPortOverride = req.query.radius_port != null ? String(req.query.radius_port).trim() || null : (configString(cfg, 'hotspot_radius_port') || null);
+    const radiusNasIpOverride = req.query.nas_ip != null ? String(req.query.nas_ip).trim() || null : (configString(cfg, 'hotspot_radius_nas_ip') || null);
+    const coaPort = Math.max(1, Math.min(65535, Number(req.query.coa_port || configNumber(cfg, 'mikrotik_coa_port') || 3799) || 3799));
+    const portalUrl = req.query.portal_url != null ? String(req.query.portal_url).trim() || null : defaultPortalUrl;
+    const paymentGatewayHost = req.query.payment_host != null ? String(req.query.payment_host).trim() || null : (configString(cfg, 'mikrotik_payment_host') || null);
+    const walledGardenHosts = (
+      req.query.walled_garden != null ? String(req.query.walled_garden).split(',') : configStringArray(cfg, 'mikrotik_walled_garden')
+    ).map((item) => String(item || '').trim()).filter(Boolean);
+    const generated = buildMikrotikHotspotConfig({
+      template,
+      radius,
+      interfaceName,
+      bridgeName,
+      hotspotAddress,
+      hotspotMask,
+      poolStart,
+      poolEnd,
+      dnsName,
+      ssid,
+      radiusHostOverride,
+      radiusPortOverride,
+      radiusNasIpOverride,
+      coaPort,
+      portalUrl,
+      paymentGatewayHost,
+      walledGardenHosts,
+    });
+    return res.json({
+      ok: true,
+      template: {
+        id: template.id,
+        name: template.name,
+        slug: template.slug,
+        auth_type: template.auth_type,
+      },
+      radius: {
+        host: radius.radiusHost,
+        port: radius.radiusPort,
+        nas_ip: radius.radiusNasIp,
+        mode: radius.radiusMode,
+      },
+      params: {
+        interface: interfaceName,
+        bridge: bridgeName,
+        hotspot_address: hotspotAddress,
+        hotspot_mask: hotspotMask,
+        pool_start: poolStart,
+        pool_end: poolEnd,
+        dns_name: dnsName,
+        ssid,
+        radius_host: radiusHostOverride || radius.radiusHost,
+        radius_port: radiusPortOverride || radius.radiusPort,
+        nas_ip: radiusNasIpOverride || radius.radiusNasIp,
+        coa_port: coaPort,
+        portal_url: portalUrl,
+        payment_host: paymentGatewayHost,
+        walled_garden: walledGardenHosts,
+      },
+      file_name: generated.fileName,
+      summary: generated.summary,
+      warnings: generated.warnings,
+      script: generated.script,
+    });
+  } catch (e) {
+    if (isTableNotFoundError(e)) {
+      return res.status(503).json({ message: 'Tabela hotspot_templates não existe. Execute sql/hotspot_templates.sql' });
+    }
+    throw e;
+  }
+}));
+
+portalDataRouter.post('/wifi/templates/:id/default', asyncHandler(async (req: Request, res: Response): Promise<Response> => {
+  const tid = tenantId(req);
+  const pool = getPool();
+  const id = Number(req.params.id || 0);
+  if (!id) return res.status(400).json({ message: 'Template inválido' });
+  try {
+    await pool.query('UPDATE hotspot_templates SET is_default = false, updated_at = CURRENT_TIMESTAMP WHERE tenant_id = :tid', { tid });
+    const [result] = await pool.query(
+      'UPDATE hotspot_templates SET is_default = true, updated_at = CURRENT_TIMESTAMP WHERE tenant_id = :tid AND id = :id RETURNING id',
+      { tid, id }
+    );
+    const affectedRows = Array.isArray(result) ? result.length : Number((result as { affectedRows?: number }).affectedRows || 0);
+    if (!affectedRows) return res.status(404).json({ message: 'Template não encontrado' });
+    return res.json({ ok: true, id });
+  } catch (e) {
+    if (isTableNotFoundError(e)) {
+      return res.status(503).json({ message: 'Tabela hotspot_templates não existe. Execute sql/hotspot_templates.sql' });
+    }
+    throw e;
+  }
+}));
+
 portalDataRouter.get('/vouchers', asyncHandler(async (req: Request, res: Response): Promise<Response> => {
   const tid = tenantId(req);
   const pool = getPool();

@@ -27,7 +27,15 @@ portalPageRouter.get('/dashboard', (_req, res) => {
   sendDashboard(res);
 });
 
-for (const route of ['planos', 'pedidos', 'clientes', 'propostas', 'contratos', 'suporte', 'clube', 'financeiro', 'fiscal', 'estoque', 'sistema', 'administracao', 'grupos', 'usuarios']) {
+portalPageRouter.get('/financeiro/:pane', (_req, res) => {
+  sendDashboard(res);
+});
+
+portalPageRouter.get('/financeiro/:pane/:item', (_req, res) => {
+  sendDashboard(res);
+});
+
+for (const route of ['planos', 'pedidos', 'clientes', 'propostas', 'contratos', 'suporte', 'clube', 'wifi', 'financeiro', 'fiscal', 'estoque', 'sistema', 'administracao', 'grupos', 'usuarios']) {
   portalPageRouter.get(`/${route}`, (_req, res) => {
     sendDashboard(res);
   });

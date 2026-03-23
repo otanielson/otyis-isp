@@ -27,6 +27,11 @@ function isStandalone(): boolean {
   return /^1|true|yes$/i.test(String(process.env.STANDALONE || '').trim());
 }
 
+function isTableNotFoundError(e: unknown): boolean {
+  const err = e as { code?: string };
+  return err?.code === '42P01' || err?.code === 'ER_NO_SUCH_TABLE';
+}
+
 /** Pasta web/uploads para logos enviadas pelo painel (servida como /uploads/*). App costuma rodar com cwd = raiz do projeto. */
 const webUploadsDir = path.join(process.cwd(), 'web', 'uploads');
 function ensureUploadsDir(): void {
@@ -57,6 +62,10 @@ const uploadLogo = multer({
 });
 
 export const saasRouter = Router();
+
+function dbBool(value: unknown): boolean {
+  return value === true || value === 1 || value === '1' || value === 't' || value === 'true' || value === 'yes';
+}
 saasRouter.use(requireSaasAdmin);
 
 /**
@@ -377,6 +386,182 @@ saasRouter.post('/upload-logo', (req: Request, res: Response, next) => {
   }
   const url = '/uploads/' + encodeURIComponent(file.filename);
   return void res.json({ ok: true, url });
+});
+
+saasRouter.get('/wifi-templates', async (_req: Request, res: Response): Promise<Response | void> => {
+  const pool = getPool();
+  try {
+    const [templateRows] = await pool.query(
+      `SELECT id, tenant_id, name, slug, description, auth_type, portal_enabled, radius_enabled,
+              free_minutes, otp_enabled, payment_required, payment_method, payment_amount,
+              requires_phone, requires_name, auto_release_after_payment, bind_mac,
+              session_timeout_minutes, redirect_url, is_default, is_active, config_json,
+              created_at, updated_at
+       FROM hotspot_templates
+       WHERE tenant_id = 1
+       ORDER BY is_default DESC, name ASC`
+    );
+    const [planRows] = await pool.query(
+      `SELECT id, template_id, name, price, duration_minutes, sort_order, active
+       FROM hotspot_template_pix_plans
+       WHERE tenant_id = 1
+       ORDER BY template_id ASC, sort_order ASC, id ASC`
+    );
+    const templates = Array.isArray(templateRows) ? templateRows : [];
+    const plans = Array.isArray(planRows) ? planRows : [];
+    const plansByTemplate = new Map<number, unknown[]>();
+    for (const row of plans as { template_id: number }[]) {
+      const key = Number(row.template_id);
+      if (!plansByTemplate.has(key)) plansByTemplate.set(key, []);
+      plansByTemplate.get(key)!.push(row);
+    }
+    return res.json({
+      ok: true,
+      rows: (templates as { id: number }[]).map((row) => ({
+        ...row,
+        is_default: dbBool((row as { is_default?: unknown }).is_default),
+        is_active: dbBool((row as { is_active?: unknown }).is_active),
+        pix_plans: plansByTemplate.get(Number(row.id)) || [],
+      })),
+    });
+  } catch (e) {
+    if (isTableNotFoundError(e)) {
+      return res.status(503).json({ message: 'Tabela hotspot_templates não existe. Execute sql/hotspot_templates.sql' });
+    }
+    throw e;
+  }
+});
+
+saasRouter.get('/wifi-payment-gateways', async (_req: Request, res: Response): Promise<Response | void> => {
+  const pool = getPool();
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, description, gateway_type, active
+       FROM payment_gateways
+       WHERE tenant_id = 1
+         AND active = true
+         AND pix = true
+       ORDER BY description ASC, id ASC`
+    );
+    return res.json({ ok: true, rows: Array.isArray(rows) ? rows : [] });
+  } catch (e) {
+    if (isTableNotFoundError(e)) {
+      return res.status(503).json({ message: 'Tabela payment_gateways não existe. Execute sql/payment_gateways.sql' });
+    }
+    throw e;
+  }
+});
+
+saasRouter.put('/wifi-templates/:id', async (req: Request, res: Response): Promise<Response | void> => {
+  const id = Number(req.params.id || 0);
+  if (!id) return res.status(400).json({ message: 'Template inválido.' });
+  const body = req.body || {};
+  const pool = getPool();
+  const config = body.config_json && typeof body.config_json === 'object' ? body.config_json : {};
+  const pixPlans = Array.isArray(body.pix_plans) ? body.pix_plans : [];
+  try {
+    if (body.is_default) {
+      await pool.query('UPDATE hotspot_templates SET is_default = false, updated_at = CURRENT_TIMESTAMP WHERE tenant_id = 1');
+    }
+    await pool.query(
+      `UPDATE hotspot_templates SET
+         name = :name,
+         slug = :slug,
+         description = :description,
+         auth_type = :auth_type,
+         portal_enabled = :portal_enabled,
+         radius_enabled = :radius_enabled,
+         free_minutes = :free_minutes,
+         otp_enabled = :otp_enabled,
+         payment_required = :payment_required,
+         payment_method = :payment_method,
+         payment_amount = :payment_amount,
+         requires_phone = :requires_phone,
+         requires_name = :requires_name,
+         auto_release_after_payment = :auto_release_after_payment,
+         bind_mac = :bind_mac,
+         session_timeout_minutes = :session_timeout_minutes,
+         redirect_url = :redirect_url,
+         is_default = :is_default,
+         is_active = :is_active,
+         config_json = :config_json::jsonb,
+         updated_at = CURRENT_TIMESTAMP
+       WHERE tenant_id = 1 AND id = :id`,
+      {
+        id,
+        name: String(body.name || '').trim(),
+        slug: String(body.slug || '').trim(),
+        description: String(body.description || '').trim(),
+        auth_type: String(body.auth_type || 'simple_login').trim(),
+        portal_enabled: !!body.portal_enabled,
+        radius_enabled: !!body.radius_enabled,
+        free_minutes: Math.max(0, Number(body.free_minutes) || 0),
+        otp_enabled: !!body.otp_enabled,
+        payment_required: !!body.payment_required,
+        payment_method: body.payment_method != null ? String(body.payment_method).trim() || null : null,
+        payment_amount: body.payment_amount !== '' && body.payment_amount != null ? Number(body.payment_amount) : null,
+        requires_phone: !!body.requires_phone,
+        requires_name: !!body.requires_name,
+        auto_release_after_payment: !!body.auto_release_after_payment,
+        bind_mac: !!body.bind_mac,
+        session_timeout_minutes: Math.max(0, Number(body.session_timeout_minutes) || 0),
+        redirect_url: body.redirect_url != null ? String(body.redirect_url).trim() || null : null,
+        is_default: !!body.is_default,
+        is_active: body.is_active !== false,
+        config_json: JSON.stringify(config),
+      }
+    );
+    await pool.query('DELETE FROM hotspot_template_pix_plans WHERE tenant_id = 1 AND template_id = :id', { id });
+    for (let i = 0; i < pixPlans.length; i++) {
+      const plan = pixPlans[i] || {};
+      const name = String(plan.name || '').trim();
+      if (!name) continue;
+      await pool.query(
+        `INSERT INTO hotspot_template_pix_plans (tenant_id, template_id, name, price, duration_minutes, sort_order, active)
+         VALUES (1, :template_id, :name, :price, :duration_minutes, :sort_order, :active)`,
+        {
+          template_id: id,
+          name,
+          price: Number(plan.price) || 0,
+          duration_minutes: Math.max(1, Number(plan.duration_minutes) || 60),
+          sort_order: i + 1,
+          active: plan.active !== false,
+        }
+      );
+    }
+    return res.json({ ok: true, id });
+  } catch (e) {
+    if (isTableNotFoundError(e)) {
+      return res.status(503).json({ message: 'Tabela hotspot_templates não existe. Execute sql/hotspot_templates.sql' });
+    }
+    throw e;
+  }
+});
+
+saasRouter.post('/wifi-templates/:id/default', async (req: Request, res: Response): Promise<Response | void> => {
+  const id = Number(req.params.id || 0);
+  if (!id) return res.status(400).json({ message: 'Template inválido.' });
+  const pool = getPool();
+  try {
+    const [rows] = await pool.query(
+      'SELECT id FROM hotspot_templates WHERE tenant_id = 1 AND id = :id LIMIT 1',
+      { id }
+    );
+    if (!Array.isArray(rows) || !rows.length) {
+      return res.status(404).json({ message: 'Template Wi-Fi não encontrado.' });
+    }
+    await pool.query('UPDATE hotspot_templates SET is_default = false, updated_at = CURRENT_TIMESTAMP WHERE tenant_id = 1');
+    await pool.query(
+      'UPDATE hotspot_templates SET is_default = true, updated_at = CURRENT_TIMESTAMP WHERE tenant_id = 1 AND id = :id',
+      { id }
+    );
+    return res.json({ ok: true, id });
+  } catch (e) {
+    if (isTableNotFoundError(e)) {
+      return res.status(503).json({ message: 'Tabela hotspot_templates não existe. Execute sql/hotspot_templates.sql' });
+    }
+    throw e;
+  }
 });
 
 /**

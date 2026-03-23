@@ -1,11 +1,40 @@
+import fs from 'fs';
+import path from 'path';
 import { Router, type Request, type Response } from 'express';
+import multer from 'multer';
 import { getPool } from '../db.js';
 import { getRadiusConfig, authenticate } from '../radius.js';
+import { buildMikrotikHotspotConfig, configNumber, configString, configStringArray, readHotspotTemplateConfig, readPortalRadiusConfig } from './portalData.routes.js';
 import { requireAdminKey } from '../utils/adminAuth.js';
 import { createAdminSession, destroyAdminSession } from '../utils/adminSession.js';
 import { normalizeWhatsapp } from '../utils/validation.js';
 
 export const adminApiRouter = Router();
+
+function dbBool(value: unknown): boolean {
+  return value === true || value === 1 || value === '1' || value === 't' || value === 'true' || value === 'yes';
+}
+
+const hotspotCertsDir = path.join(process.cwd(), 'uploads', 'hotspot-certs');
+if (!fs.existsSync(hotspotCertsDir)) fs.mkdirSync(hotspotCertsDir, { recursive: true });
+
+const hotspotCertStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, hotspotCertsDir),
+  filename: (_req, file, cb) => {
+    const safeExt = path.extname(file.originalname || '').toLowerCase();
+    cb(null, `hotspot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${safeExt}`);
+  },
+});
+
+const uploadHotspotCert = multer({
+  storage: hotspotCertStorage,
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    if (['.p12', '.pfx', '.pem', '.key'].includes(ext)) cb(null, true);
+    else cb(new Error('Envie um certificado .p12, .pfx, .pem ou .key'));
+  },
+});
 
 /** Garante que um pedido instalado exista em customers e tenha loyalty (Clube Multi). */
 async function syncInstalledLeadToCustomer(
@@ -143,6 +172,35 @@ function asyncHandler(fn: (req: Request, res: Response) => Promise<Response | vo
   };
 }
 
+function isTableNotFoundError(e: unknown): boolean {
+  const err = e as { code?: string };
+  return err?.code === '42P01' || err?.code === 'ER_NO_SUCH_TABLE';
+}
+
+adminApiRouter.post('/upload-hotspot-cert', (req: Request, res: Response, next): void => {
+  uploadHotspotCert.single('file')(req, res, (err: unknown) => {
+    if (err) {
+      if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+        res.status(400).json({ ok: false, message: 'Arquivo muito grande. Máximo: 8MB.' });
+        return;
+      }
+      res.status(400).json({ ok: false, message: err instanceof Error ? err.message : 'Falha no upload.' });
+      return;
+    }
+    next();
+  });
+}, (req: Request, res: Response): Response => {
+  const file = (req as Request & { file?: Express.Multer.File }).file;
+  if (!file) return res.status(400).json({ ok: false, message: 'Nenhum arquivo enviado.' });
+  return res.json({
+    ok: true,
+    filename: file.filename,
+    absolute_path: file.path,
+    relative_path: path.relative(process.cwd(), file.path).replace(/\\/g, '/'),
+    original_name: file.originalname,
+  });
+});
+
 adminApiRouter.get('/stats', asyncHandler(async (_req: Request, res: Response): Promise<Response> => {
   const pool = getPool();
   const queries = [
@@ -197,6 +255,276 @@ adminApiRouter.post('/radius-test', asyncHandler(async (req: Request, res: Respo
   }
   const result = await authenticate(username, password);
   return res.json({ success: result.success, message: result.message ?? undefined });
+}));
+
+adminApiRouter.get('/wifi-templates', asyncHandler(async (_req: Request, res: Response): Promise<Response> => {
+  const pool = getPool();
+  try {
+    const [templateRows] = await pool.query(
+      `SELECT id, tenant_id, name, slug, description, auth_type, portal_enabled, radius_enabled,
+              free_minutes, otp_enabled, payment_required, payment_method, payment_amount,
+              requires_phone, requires_name, auto_release_after_payment, bind_mac,
+              session_timeout_minutes, redirect_url, is_default, is_active, config_json,
+              created_at, updated_at
+       FROM hotspot_templates
+       WHERE tenant_id = 1
+       ORDER BY is_default DESC, name ASC`
+    );
+    const [planRows] = await pool.query(
+      `SELECT id, template_id, name, price, duration_minutes, sort_order, active
+       FROM hotspot_template_pix_plans
+       WHERE tenant_id = 1
+       ORDER BY template_id ASC, sort_order ASC, id ASC`
+    );
+    const templates = Array.isArray(templateRows) ? templateRows : [];
+    const plans = Array.isArray(planRows) ? planRows : [];
+    const plansByTemplate = new Map<number, unknown[]>();
+    for (const row of plans as { template_id: number }[]) {
+      const key = Number(row.template_id);
+      if (!plansByTemplate.has(key)) plansByTemplate.set(key, []);
+      plansByTemplate.get(key)!.push(row);
+    }
+    return res.json({
+      ok: true,
+      rows: (templates as { id: number }[]).map((row) => ({
+        ...row,
+        is_default: dbBool((row as { is_default?: unknown }).is_default),
+        is_active: dbBool((row as { is_active?: unknown }).is_active),
+        pix_plans: plansByTemplate.get(Number(row.id)) || [],
+      })),
+    });
+  } catch (e) {
+    if (isTableNotFoundError(e)) {
+      return res.status(503).json({ message: 'Tabela hotspot_templates não existe. Execute sql/hotspot_templates.sql' });
+    }
+    throw e;
+  }
+}));
+
+adminApiRouter.get('/wifi-templates/:id/mikrotik-config', asyncHandler(async (req: Request, res: Response): Promise<Response> => {
+  const id = Number(req.params.id || 0);
+  if (!id) return res.status(400).json({ message: 'Template inválido.' });
+  const pool = getPool();
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, tenant_id, name, slug, description, auth_type, portal_enabled, radius_enabled,
+              free_minutes, otp_enabled, payment_required, payment_method, payment_amount,
+              requires_phone, requires_name, auto_release_after_payment, bind_mac,
+              session_timeout_minutes, redirect_url, is_default, is_active, config_json
+       FROM hotspot_templates
+       WHERE tenant_id = 1 AND id = :id
+       LIMIT 1`,
+      { id }
+    );
+    const template = Array.isArray(rows) && rows[0] ? (rows[0] as {
+      id: number;
+      name: string;
+      slug: string;
+      auth_type: string;
+      portal_enabled: boolean;
+      radius_enabled: boolean;
+      free_minutes: number;
+      otp_enabled: boolean;
+      payment_required: boolean;
+      payment_method: string | null;
+      bind_mac: boolean;
+      session_timeout_minutes: number;
+      redirect_url: string | null;
+      config_json?: unknown;
+    }) : null;
+    if (!template) return res.status(404).json({ message: 'Template Wi-Fi não encontrado.' });
+
+    const radius = await readPortalRadiusConfig(pool, 1);
+    const cfg = readHotspotTemplateConfig(template);
+    const origin = `${req.protocol}://${req.get('host') || 'localhost'}`;
+    const portalUrl = configString(cfg, 'mikrotik_portal_url')
+      || `${origin}/hotspot/${radius.slug || process.env.TENANT_SLUG || 'tenant'}/${template.slug}`;
+    const interfaceName = configString(cfg, 'mikrotik_interface') || 'bridge-hotspot';
+    const bridgeName = configString(cfg, 'mikrotik_bridge') || interfaceName;
+    const hotspotAddress = configString(cfg, 'mikrotik_hotspot_address') || '10.10.10.1';
+    const hotspotMask = Math.min(30, Math.max(24, configNumber(cfg, 'mikrotik_hotspot_mask') || 24));
+    const poolStart = configString(cfg, 'mikrotik_pool_start') || '10.10.10.10';
+    const poolEnd = configString(cfg, 'mikrotik_pool_end') || '10.10.10.254';
+    const dnsName = configString(cfg, 'mikrotik_dns_name') || 'login.multi.local';
+    const ssid = configString(cfg, 'mikrotik_ssid') || 'WiFi Multi';
+    const radiusHostOverride = configString(cfg, 'hotspot_radius_host');
+    const radiusPortOverride = configString(cfg, 'hotspot_radius_port');
+    const radiusNasIpOverride = configString(cfg, 'hotspot_radius_nas_ip');
+    const coaPort = Math.max(1, Math.min(65535, configNumber(cfg, 'mikrotik_coa_port') || 3799));
+    const paymentGatewayHost = configString(cfg, 'mikrotik_payment_host');
+    const walledGardenHosts = configStringArray(cfg, 'mikrotik_walled_garden');
+
+    const generated = buildMikrotikHotspotConfig({
+      template,
+      radius,
+      interfaceName,
+      bridgeName,
+      hotspotAddress,
+      hotspotMask,
+      poolStart,
+      poolEnd,
+      dnsName,
+      ssid,
+      radiusHostOverride,
+      radiusPortOverride,
+      radiusNasIpOverride,
+      coaPort,
+      portalUrl,
+      paymentGatewayHost,
+      walledGardenHosts,
+    });
+
+    return res.json({
+      ok: true,
+      template: {
+        id: template.id,
+        name: template.name,
+        slug: template.slug,
+        auth_type: template.auth_type,
+      },
+      file_name: generated.fileName,
+      summary: generated.summary,
+      warnings: generated.warnings,
+      script: generated.script,
+    });
+  } catch (e) {
+    if (isTableNotFoundError(e)) {
+      return res.status(503).json({ message: 'Tabela hotspot_templates não existe. Execute sql/hotspot_templates.sql' });
+    }
+    throw e;
+  }
+}));
+
+adminApiRouter.get('/wifi-payment-gateways', asyncHandler(async (_req: Request, res: Response): Promise<Response> => {
+  const pool = getPool();
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, description, gateway_type, active
+       FROM payment_gateways
+       WHERE tenant_id = 1
+         AND active = true
+         AND pix = true
+       ORDER BY description ASC, id ASC`
+    );
+    return res.json({ ok: true, rows: Array.isArray(rows) ? rows : [] });
+  } catch (e) {
+    if (isTableNotFoundError(e)) {
+      return res.status(503).json({ message: 'Tabela payment_gateways não existe. Execute sql/payment_gateways.sql' });
+    }
+    throw e;
+  }
+}));
+
+adminApiRouter.put('/wifi-templates/:id', asyncHandler(async (req: Request, res: Response): Promise<Response> => {
+  const id = Number(req.params.id || 0);
+  if (!id) return res.status(400).json({ message: 'Template inválido.' });
+  const body = req.body || {};
+  const pool = getPool();
+  const config = body.config_json && typeof body.config_json === 'object' ? body.config_json : {};
+  const pixPlans = Array.isArray(body.pix_plans) ? body.pix_plans : [];
+  try {
+    if (body.is_default) {
+      await pool.query('UPDATE hotspot_templates SET is_default = false, updated_at = CURRENT_TIMESTAMP WHERE tenant_id = 1');
+    }
+    await pool.query(
+      `UPDATE hotspot_templates SET
+         name = :name,
+         slug = :slug,
+         description = :description,
+         auth_type = :auth_type,
+         portal_enabled = :portal_enabled,
+         radius_enabled = :radius_enabled,
+         free_minutes = :free_minutes,
+         otp_enabled = :otp_enabled,
+         payment_required = :payment_required,
+         payment_method = :payment_method,
+         payment_amount = :payment_amount,
+         requires_phone = :requires_phone,
+         requires_name = :requires_name,
+         auto_release_after_payment = :auto_release_after_payment,
+         bind_mac = :bind_mac,
+         session_timeout_minutes = :session_timeout_minutes,
+         redirect_url = :redirect_url,
+         is_default = :is_default,
+         is_active = :is_active,
+         config_json = :config_json::jsonb,
+         updated_at = CURRENT_TIMESTAMP
+       WHERE tenant_id = 1 AND id = :id`,
+      {
+        id,
+        name: String(body.name || '').trim(),
+        slug: String(body.slug || '').trim(),
+        description: String(body.description || '').trim(),
+        auth_type: String(body.auth_type || 'simple_login').trim(),
+        portal_enabled: !!body.portal_enabled,
+        radius_enabled: !!body.radius_enabled,
+        free_minutes: Math.max(0, Number(body.free_minutes) || 0),
+        otp_enabled: !!body.otp_enabled,
+        payment_required: !!body.payment_required,
+        payment_method: body.payment_method != null ? String(body.payment_method).trim() || null : null,
+        payment_amount: body.payment_amount !== '' && body.payment_amount != null ? Number(body.payment_amount) : null,
+        requires_phone: !!body.requires_phone,
+        requires_name: !!body.requires_name,
+        auto_release_after_payment: !!body.auto_release_after_payment,
+        bind_mac: !!body.bind_mac,
+        session_timeout_minutes: Math.max(0, Number(body.session_timeout_minutes) || 0),
+        redirect_url: body.redirect_url != null ? String(body.redirect_url).trim() || null : null,
+        is_default: !!body.is_default,
+        is_active: body.is_active !== false,
+        config_json: JSON.stringify(config),
+      }
+    );
+    await pool.query('DELETE FROM hotspot_template_pix_plans WHERE tenant_id = 1 AND template_id = :id', { id });
+    for (let i = 0; i < pixPlans.length; i++) {
+      const plan = pixPlans[i] || {};
+      const name = String(plan.name || '').trim();
+      if (!name) continue;
+      await pool.query(
+        `INSERT INTO hotspot_template_pix_plans (tenant_id, template_id, name, price, duration_minutes, sort_order, active)
+         VALUES (1, :template_id, :name, :price, :duration_minutes, :sort_order, :active)`,
+        {
+          template_id: id,
+          name,
+          price: Number(plan.price) || 0,
+          duration_minutes: Math.max(1, Number(plan.duration_minutes) || 60),
+          sort_order: i + 1,
+          active: plan.active !== false,
+        }
+      );
+    }
+    return res.json({ ok: true, id });
+  } catch (e) {
+    if (isTableNotFoundError(e)) {
+      return res.status(503).json({ message: 'Tabela hotspot_templates não existe. Execute sql/hotspot_templates.sql' });
+    }
+    throw e;
+  }
+}));
+
+adminApiRouter.post('/wifi-templates/:id/default', asyncHandler(async (req: Request, res: Response): Promise<Response> => {
+  const id = Number(req.params.id || 0);
+  if (!id) return res.status(400).json({ message: 'Template inválido.' });
+  const pool = getPool();
+  try {
+    const [rows] = await pool.query(
+      'SELECT id FROM hotspot_templates WHERE tenant_id = 1 AND id = :id LIMIT 1',
+      { id }
+    );
+    if (!Array.isArray(rows) || !rows.length) {
+      return res.status(404).json({ message: 'Template Wi-Fi não encontrado.' });
+    }
+    await pool.query('UPDATE hotspot_templates SET is_default = false, updated_at = CURRENT_TIMESTAMP WHERE tenant_id = 1');
+    await pool.query(
+      'UPDATE hotspot_templates SET is_default = true, updated_at = CURRENT_TIMESTAMP WHERE tenant_id = 1 AND id = :id',
+      { id }
+    );
+    return res.json({ ok: true, id });
+  } catch (e) {
+    if (isTableNotFoundError(e)) {
+      return res.status(503).json({ message: 'Tabela hotspot_templates não existe. Execute sql/hotspot_templates.sql' });
+    }
+    throw e;
+  }
 }));
 
 adminApiRouter.get('/leads', asyncHandler(async (_req: Request, res: Response): Promise<Response> => {

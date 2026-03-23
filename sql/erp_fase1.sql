@@ -48,8 +48,13 @@ CREATE TABLE IF NOT EXISTS tickets (
   customer_id BIGINT REFERENCES customers(id) ON DELETE SET NULL,
   subject VARCHAR(255) NOT NULL,
   priority VARCHAR(20) NOT NULL DEFAULT 'NORMAL' CHECK (priority IN ('LOW','NORMAL','HIGH','URGENT')),
-  status VARCHAR(20) NOT NULL DEFAULT 'OPEN' CHECK (status IN ('OPEN','IN_PROGRESS','PENDING','RESOLVED','CLOSED')),
+  status VARCHAR(32) NOT NULL DEFAULT 'OPEN' CHECK (status IN ('OPEN','IN_PROGRESS','PENDING','WAITING_CUSTOMER','EN_ROUTE','RESOLVED','CLOSED','CANCELLED')),
+  channel VARCHAR(32),
+  ticket_type VARCHAR(32),
+  technical_category VARCHAR(64),
   assigned_to INT,
+  assigned_to_name VARCHAR(120),
+  sla_due_at TIMESTAMPTZ,
   defect_text TEXT,
   solution_text TEXT,
   closed_at TIMESTAMPTZ,
@@ -62,3 +67,12 @@ CREATE INDEX IF NOT EXISTS idx_tickets_customer ON tickets(customer_id);
 
 ALTER TABLE tickets ADD COLUMN IF NOT EXISTS defect_text TEXT;
 ALTER TABLE tickets ADD COLUMN IF NOT EXISTS solution_text TEXT;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS channel VARCHAR(32);
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS ticket_type VARCHAR(32);
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS technical_category VARCHAR(64);
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS assigned_to_name VARCHAR(120);
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS sla_due_at TIMESTAMPTZ;
+ALTER TABLE tickets DROP CONSTRAINT IF EXISTS tickets_status_check;
+ALTER TABLE tickets
+  ADD CONSTRAINT tickets_status_check
+  CHECK (status IN ('OPEN','IN_PROGRESS','PENDING','WAITING_CUSTOMER','EN_ROUTE','RESOLVED','CLOSED','CANCELLED'));

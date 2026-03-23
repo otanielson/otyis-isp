@@ -1,0 +1,218 @@
+<div class="admin-tab" id="tab-wifi">
+  <div class="admin-panel mb-3">
+    <div class="admin-panel__head d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div>
+        <span class="text-uppercase small text-muted">Wi-Fi</span>
+        <h6 class="mb-0 fw-bold"><i class="bi bi-wifi me-1"></i>Gestão de Hotspot</h6>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnWifiLoadHotspot"><i class="bi bi-arrow-clockwise me-1"></i>Atualizar</button>
+        <button type="button" class="btn btn-sm btn-primary" id="btnWifiGenerateHotspot"><i class="bi bi-plus-lg me-1"></i>Gerar vouchers</button>
+      </div>
+    </div>
+    <div class="admin-panel__body">
+      <div class="wifi-page">
+        <section class="wifi-page__hero mb-4">
+          <div class="wifi-page__hero-main">
+            <div class="wifi-page__eyebrow">Operação cloud-first</div>
+            <h4 class="wifi-page__title mb-2">Hotspot, vouchers, Pix e MikroTik em uma central única</h4>
+            <p class="wifi-page__text mb-0">Controle os modelos de acesso, acompanhe o financeiro do hotspot, emita vouchers com padrão operacional e gere o script do MikroTik alinhado com o portal cloud e o FreeRADIUS.</p>
+          </div>
+          <div class="wifi-page__hero-side">
+            <div class="wifi-page__hero-card">
+              <div class="wifi-page__hero-card-label">Fluxo operacional</div>
+              <div class="wifi-page__hero-card-value">Voucher → portal → autenticação</div>
+              <div class="wifi-page__hero-card-help">Usuário no RADIUS: <code>voucher_ID</code></div>
+            </div>
+          </div>
+        </section>
+
+        <div class="wifi-page__nav mb-4">
+          <span class="wifi-page__nav-pill">Modelos</span>
+          <span class="wifi-page__nav-pill">Financeiro</span>
+          <span class="wifi-page__nav-pill">Vouchers</span>
+          <span class="wifi-page__nav-pill">Provisionamento</span>
+        </div>
+
+        <div class="wifi-page__highlight mb-4">
+          <div>
+            <div class="small text-muted text-uppercase">Escopo ativo</div>
+            <div class="fw-bold">Hotspot / vouchers / Pix</div>
+          </div>
+          <span class="badge bg-primary-subtle text-primary border">Pronto para operar</span>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-xxl-7">
+            <div class="admin-panel border h-100 mb-0">
+              <div class="admin-panel__head d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                  <span class="text-uppercase small text-muted">Modelos pré-configurados</span>
+                  <h6 class="mb-0 fw-bold"><i class="bi bi-diagram-3 me-1"></i>Templates de acesso</h6>
+                </div>
+                <span class="badge bg-secondary-subtle text-secondary border">Telefone, RADIUS e Pix</span>
+              </div>
+              <div class="admin-panel__body">
+                <div id="wifiDefaultTemplateBanner" class="alert alert-primary py-2 mb-3 small">
+                  Carregando modelo padrão do hotspot...
+                </div>
+                <div id="wifiTemplatesOutput" class="small text-muted">Carregando modelos de hotspot...</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-xxl-5">
+            <div class="admin-panel border h-100 mb-0">
+              <div class="admin-panel__head d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                  <span class="text-uppercase small text-muted">Financeiro do Wi-Fi</span>
+                  <h6 class="mb-0 fw-bold"><i class="bi bi-cash-coin me-1"></i>Recebimentos e sessões</h6>
+                </div>
+                <span class="badge bg-success-subtle text-success border">Pix, liberação e vouchers</span>
+              </div>
+              <div class="admin-panel__body">
+                <div id="wifiFinanceOutput" class="small text-muted">Carregando financeiro do hotspot...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-xxl-5">
+            <div class="admin-panel border h-100 mb-0">
+              <div class="admin-panel__head d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                  <span class="text-uppercase small text-muted">Vouchers do hotspot</span>
+                  <h6 class="mb-0 fw-bold"><i class="bi bi-ticket-perforated me-1"></i>Emissão e acompanhamento</h6>
+                </div>
+                <span class="badge bg-warning-subtle text-warning border">Acesso temporário profissional</span>
+              </div>
+              <div class="admin-panel__body">
+                <div class="wifi-voucher-batch-card mb-3">
+                  <div class="row g-3 align-items-end">
+                    <div class="col-xl-4 col-md-4">
+                      <label class="form-label small">Quantidade</label>
+                      <input type="number" min="1" max="50" class="form-control form-control-sm" id="wifiVoucherCount" value="5">
+                    </div>
+                    <div class="col-xl-4 col-md-4">
+                      <label class="form-label small">Duração (min)</label>
+                      <input type="number" min="1" max="10080" class="form-control form-control-sm" id="wifiVoucherDuration" value="240">
+                    </div>
+                    <div class="col-xl-4 col-md-4">
+                      <label class="form-label small">Limite de dados (MB)</label>
+                      <input type="number" min="0" class="form-control form-control-sm" id="wifiVoucherDataLimit" placeholder="Opcional">
+                    </div>
+                    <div class="col-xl-4 col-md-4">
+                      <label class="form-label small">Prefixo</label>
+                      <input type="text" class="form-control form-control-sm" id="wifiVoucherPrefix" value="V">
+                    </div>
+                    <div class="col-xl-8 col-md-8">
+                      <label class="form-label small">Padrão operacional</label>
+                      <div class="small text-muted">Usuário no RADIUS: <code>voucher_ID</code> · senha: código gerado · timeout por sessão.</div>
+                    </div>
+                  </div>
+                  <div class="d-flex gap-2 flex-wrap mt-3">
+                    <button type="button" class="btn btn-sm btn-primary" id="btnWifiCreateVoucherBatch"><i class="bi bi-plus-circle me-1"></i>Emitir lote</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnWifiRefreshVoucherList"><i class="bi bi-arrow-repeat me-1"></i>Atualizar lista</button>
+                  </div>
+                  <div id="wifiVoucherBatchFeedback" class="small text-muted mt-3">Defina a quantidade, duração e prefixo para emitir vouchers do hotspot com controle de tempo.</div>
+                </div>
+
+                <div id="wifiHotspotOutput" class="small text-muted">Clique em <strong>Atualizar lista</strong> para carregar os vouchers do Hotspot.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-xxl-7">
+            <div class="admin-panel border h-100 mb-0">
+              <div class="admin-panel__head d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                  <span class="text-uppercase small text-muted">Provisionamento</span>
+                  <h6 class="mb-0 fw-bold"><i class="bi bi-router me-1"></i>Gerador de configuração MikroTik</h6>
+                </div>
+                <span class="badge bg-info-subtle text-info border">RouterOS pronto para copiar</span>
+              </div>
+              <div class="admin-panel__body">
+                <div class="row g-3">
+                  <div class="col-xl-3 col-md-6">
+                    <label class="form-label small">Template Wi-Fi</label>
+                    <select class="form-select form-select-sm" id="wifiMikrotikTemplate"></select>
+                  </div>
+                  <div class="col-xl-3 col-md-6">
+                    <label class="form-label small">Interface hotspot</label>
+                    <input type="text" class="form-control form-control-sm" id="wifiMikrotikInterface" value="bridge-hotspot">
+                  </div>
+                  <div class="col-xl-3 col-md-6">
+                    <label class="form-label small">Bridge/LAN</label>
+                    <input type="text" class="form-control form-control-sm" id="wifiMikrotikBridge" value="bridge-hotspot">
+                  </div>
+                  <div class="col-xl-3 col-md-6">
+                    <label class="form-label small">SSID</label>
+                    <input type="text" class="form-control form-control-sm" id="wifiMikrotikSsid" value="WiFi Multi">
+                  </div>
+                  <div class="col-xl-3 col-md-6">
+                    <label class="form-label small">URL do portal cloud</label>
+                    <input type="url" class="form-control form-control-sm" id="wifiMikrotikPortalUrl" value="https://portal.seudominio.com/hotspot">
+                  </div>
+                  <div class="col-xl-3 col-md-6">
+                    <label class="form-label small">Host/IP do RADIUS cloud</label>
+                    <input type="text" class="form-control form-control-sm" id="wifiMikrotikRadiusHost" value="">
+                  </div>
+                  <div class="col-xl-3 col-md-6">
+                    <label class="form-label small">NAS IP do MikroTik</label>
+                    <input type="text" class="form-control form-control-sm" id="wifiMikrotikNasIp" value="">
+                  </div>
+                  <div class="col-xl-3 col-md-6">
+                    <label class="form-label small">Porta CoA/Disconnect</label>
+                    <input type="number" min="1" max="65535" class="form-control form-control-sm" id="wifiMikrotikCoaPort" value="3799">
+                  </div>
+                  <div class="col-xl-3 col-md-6">
+                    <label class="form-label small">IP do hotspot</label>
+                    <input type="text" class="form-control form-control-sm" id="wifiMikrotikAddress" value="10.10.10.1">
+                  </div>
+                  <div class="col-xl-2 col-md-6">
+                    <label class="form-label small">Mascara CIDR</label>
+                    <input type="number" min="24" max="30" class="form-control form-control-sm" id="wifiMikrotikMask" value="24">
+                  </div>
+                  <div class="col-xl-2 col-md-6">
+                    <label class="form-label small">Pool início</label>
+                    <input type="text" class="form-control form-control-sm" id="wifiMikrotikPoolStart" value="10.10.10.10">
+                  </div>
+                  <div class="col-xl-2 col-md-6">
+                    <label class="form-label small">Pool fim</label>
+                    <input type="text" class="form-control form-control-sm" id="wifiMikrotikPoolEnd" value="10.10.10.254">
+                  </div>
+                  <div class="col-xl-3 col-md-6">
+                    <label class="form-label small">DNS/portal</label>
+                    <input type="text" class="form-control form-control-sm" id="wifiMikrotikDnsName" value="login.multi.local">
+                  </div>
+                  <div class="col-xl-6">
+                    <label class="form-label small">Walled garden extra</label>
+                    <input type="text" class="form-control form-control-sm" id="wifiMikrotikWalledGarden" placeholder="api.whatsapp.com, pagamentos.exemplo.com">
+                  </div>
+                  <div class="col-xl-4 col-md-6">
+                    <label class="form-label small">Gateway Pix / host de pagamento</label>
+                    <input type="text" class="form-control form-control-sm" id="wifiMikrotikPaymentHost" placeholder="pix.seudominio.com">
+                  </div>
+                  <div class="col-xl-4 col-md-6">
+                    <label class="form-label small">Secret RADIUS</label>
+                    <input type="text" class="form-control form-control-sm" value="Protegido pelo sistema" readonly>
+                    <div class="form-text">O secret real não é exibido no portal. O arquivo sai com placeholder por segurança.</div>
+                  </div>
+                </div>
+                <div class="d-flex gap-2 mt-3 flex-wrap">
+                  <button type="button" class="btn btn-sm btn-primary" id="btnWifiGenerateMikrotik"><i class="bi bi-magic me-1"></i>Gerar configuração</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" id="btnWifiCopyMikrotik"><i class="bi bi-clipboard me-1"></i>Copiar script</button>
+                  <button type="button" class="btn btn-sm btn-outline-dark" id="btnWifiDownloadMikrotik"><i class="bi bi-download me-1"></i>Baixar .rsc</button>
+                </div>
+                <div id="wifiMikrotikSummary" class="small text-muted mt-3">Escolha um template e gere um script RouterOS completo para hotspot + RADIUS.</div>
+                <div id="wifiMikrotikWarnings" class="mt-2"></div>
+                <pre id="wifiMikrotikOutput" class="border rounded bg-dark text-light p-3 mt-3 small" style="min-height: 260px; white-space: pre-wrap;">Clique em Gerar configuração para montar o script do MikroTik.</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

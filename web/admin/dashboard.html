@@ -51,6 +51,7 @@
       <a href="#" class="active" data-tab="overview"><i class="bi bi-grid"></i> Visão geral</a>
       <a href="#" data-tab="tenants" id="navTabTenants"><i class="bi bi-building"></i> Esta instalação</a>
       <a href="#" data-tab="radius"><i class="bi bi-wifi"></i> RADIUS</a>
+      <a href="#" data-tab="wifi-models"><i class="bi bi-router"></i> Modelos Wi-Fi</a>
       <a href="#" data-tab="nas"><i class="bi bi-hdd-network"></i> Concentradores</a>
     </nav>
     <div class="admin-sidebar__foot">
@@ -281,6 +282,157 @@
               </div>
             </div>
             <div id="radiusTestResult" class="mt-2 small"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-tab" id="tab-wifi-models">
+        <div class="admin-panel">
+          <div class="admin-panel__head">
+            <span>Modelos de hotspot / Wi-Fi</span>
+            <button type="button" class="btn btn-sm btn-outline-primary ms-2" id="btnLoadWifiModels"><i class="bi bi-arrow-clockwise me-1"></i>Atualizar</button>
+          </div>
+          <div class="admin-panel__body wifi-models-page">
+            <section class="wifi-models-hero">
+              <div class="wifi-models-hero__content">
+                <div class="wifi-models-hero__eyebrow">Catalogo de Experiencias Wi-Fi</div>
+                <h3 class="wifi-models-hero__title">Monte modelos prontos para hotspot, portal captivo, RADIUS e Pix</h3>
+                <p class="wifi-models-hero__text">Centralize aqui os cenarios que o provedor podera ativar no portal. Cada modelo define autenticacao, jornada do usuario, monetizacao e experiencia operacional.</p>
+              </div>
+              <div class="wifi-models-hero__stats">
+                <div class="wifi-models-stat">
+                  <span class="wifi-models-stat__label">Objetivo</span>
+                  <strong class="wifi-models-stat__value">Padronizar implantacoes</strong>
+                </div>
+                <div class="wifi-models-stat">
+                  <span class="wifi-models-stat__label">Cobre</span>
+                  <strong class="wifi-models-stat__value">Telefone, voucher, RADIUS e Pix</strong>
+                </div>
+                <div class="wifi-models-stat">
+                  <span class="wifi-models-stat__label">Resultado</span>
+                  <strong class="wifi-models-stat__value">Provisionamento mais rapido</strong>
+                </div>
+              </div>
+            </section>
+            <div class="row g-3">
+              <div class="col-lg-5">
+                <div class="wifi-models-catalog">
+                  <div class="wifi-models-section-head">
+                    <div>
+                      <div class="wifi-models-section-head__eyebrow">Catalogo</div>
+                      <h4 class="wifi-models-section-head__title">Modelos disponiveis</h4>
+                    </div>
+                    <span class="wifi-models-section-head__badge">Prontos para customizar</span>
+                  </div>
+                  <div class="wifi-models-catalog__hint">Escolha um modelo para editar regras, jornada do acesso e visualizacao comercial no painel.</div>
+                  <div class="small text-muted text-uppercase mb-2">Catálogo</div>
+                  <div id="outWifiModels">Clique em <strong>Atualizar</strong> para carregar os modelos.</div>
+                </div>
+              </div>
+              <div class="col-lg-7">
+                <div class="wifi-models-editor">
+                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <div>
+                      <div class="wifi-models-section-head__eyebrow">Editor</div>
+                      <div class="fw-bold wifi-models-editor__title" id="wifiModelEditorTitle">Selecione um modelo</div>
+                    </div>
+                    <span class="badge bg-secondary-subtle text-secondary border" id="wifiModelEditorBadge">Somente leitura</span>
+                  </div>
+                  <input type="hidden" id="wifiModelId" value="">
+                  <div id="wifiModelsError" class="alert alert-danger py-2 d-none mb-2 small"></div>
+                  <div class="wifi-models-form-section">
+                    <div class="wifi-models-form-section__title"><i class="bi bi-sliders2"></i> Configurações do modelo</div>
+                  <div class="row g-2">
+                    <div class="col-md-6"><label class="form-label small">Nome</label><input type="text" class="form-control form-control-sm" id="wifiModelName"></div>
+                    <div class="col-md-6"><label class="form-label small">Slug</label><input type="text" class="form-control form-control-sm" id="wifiModelSlug"></div>
+                    <div class="col-md-6"><label class="form-label small">Autenticação</label><input type="text" class="form-control form-control-sm" id="wifiModelAuthType"></div>
+                    <div class="col-md-6"><label class="form-label small">Redirect URL</label><input type="text" class="form-control form-control-sm" id="wifiModelRedirectUrl"></div>
+                    <div class="col-12"><label class="form-label small">Logo da empresa (URL)</label><input type="text" class="form-control form-control-sm" id="wifiModelLogoUrl" placeholder="https://empresa.com/logo.png"></div>
+                    <div class="col-12"><label class="form-label small">Descrição</label><textarea class="form-control form-control-sm" id="wifiModelDescription" rows="2"></textarea></div>
+                    <div class="col-md-4"><label class="form-label small">Tempo grátis (min)</label><input type="number" class="form-control form-control-sm" id="wifiModelFreeMinutes" min="0"></div>
+                    <div class="col-md-4"><label class="form-label small">Sessão (min)</label><input type="number" class="form-control form-control-sm" id="wifiModelSessionTimeout" min="0"></div>
+                    <div class="col-md-4"><label class="form-label small">Valor Pix</label><input type="number" step="0.01" class="form-control form-control-sm" id="wifiModelPaymentAmount"></div>
+                    <div class="col-md-6"><label class="form-label small">Gateway do hotspot</label><input type="text" class="form-control form-control-sm" id="wifiModelHotspotGatewayName" placeholder="EFI Hotspot"></div>
+                    <div class="col-md-6"><label class="form-label small">Tipo do gateway</label><input type="text" class="form-control form-control-sm" id="wifiModelHotspotGatewayType" placeholder="efi"></div>
+                    <div class="col-md-6"><label class="form-label small">Chave Pix / chave pública</label><input type="text" class="form-control form-control-sm" id="wifiModelHotspotPixKey" placeholder="SUA_CHAVE_PIX_EFI"></div>
+                    <div class="col-md-6"><label class="form-label small">Webhook / callback URL</label><input type="text" class="form-control form-control-sm" id="wifiModelHotspotWebhookUrl" placeholder="https://api.seudominio.com/hotspot/pix/efi/webhook"></div>
+                    <div class="col-md-6"><label class="form-label small">Client ID EFI</label><input type="text" class="form-control form-control-sm" id="wifiModelHotspotClientId" placeholder="client_id da aplicaÃ§Ã£o EFI"></div>
+                    <div class="col-md-6"><label class="form-label small">Client Secret EFI</label><input type="password" class="form-control form-control-sm" id="wifiModelHotspotClientSecret" placeholder="client_secret da aplicaÃ§Ã£o EFI"></div>
+                    <div class="col-md-6"><label class="form-label small">Certificado (.p12/.pfx/.pem)</label><input type="text" class="form-control form-control-sm" id="wifiModelHotspotCertPath" placeholder="/etc/ssl/efi/hotspot-cert.p12"></div>
+                    <div class="col-md-6"><label class="form-label small">Chave privada do certificado</label><input type="text" class="form-control form-control-sm" id="wifiModelHotspotCertKeyPath" placeholder="/etc/ssl/efi/hotspot-key.pem"></div>
+                    <div class="col-md-6"><label class="form-label small">Upload do certificado</label><div class="d-flex gap-2"><input type="file" class="form-control form-control-sm" id="wifiModelHotspotCertUpload" accept=".p12,.pfx,.pem"><button type="button" class="btn btn-outline-secondary btn-sm" id="btnWifiUploadCert">Enviar</button></div></div>
+                    <div class="col-md-6"><label class="form-label small">Upload da chave privada</label><div class="d-flex gap-2"><input type="file" class="form-control form-control-sm" id="wifiModelHotspotKeyUpload" accept=".pem,.key"><button type="button" class="btn btn-outline-secondary btn-sm" id="btnWifiUploadKey">Enviar</button></div></div>
+                    <div class="col-md-6"><label class="form-label small">Passphrase do certificado</label><input type="password" class="form-control form-control-sm" id="wifiModelHotspotCertPassphrase" placeholder="Senha do .p12/.pfx, se houver"></div>
+                    <div class="col-md-6"><label class="form-label small">Secret do webhook</label><input type="password" class="form-control form-control-sm" id="wifiModelHotspotWebhookSecret" placeholder="Segredo para validar callbacks da EFI"></div>
+                    <div class="col-md-6"><label class="form-label small">Base URL da EFI</label><input type="text" class="form-control form-control-sm" id="wifiModelHotspotBaseUrl" placeholder="https://pix.api.efipay.com.br"></div>
+                    <div class="col-md-6"><div class="form-check mt-4"><input class="form-check-input" type="checkbox" id="wifiModelHotspotSandbox"><label class="form-check-label" for="wifiModelHotspotSandbox">Ambiente sandbox / homologaÃ§Ã£o</label></div></div>
+                    <div class="col-md-6"><label class="form-label small">Host RADIUS do hotspot</label><input type="text" class="form-control form-control-sm" id="wifiModelHotspotRadiusHost" placeholder="radius.seudominio.com"></div>
+                    <div class="col-md-6"><label class="form-label small">Porta RADIUS</label><input type="number" class="form-control form-control-sm" id="wifiModelHotspotRadiusPort" placeholder="1812"></div>
+                    <div class="col-md-6"><label class="form-label small">Secret RADIUS do hotspot</label><input type="password" class="form-control form-control-sm" id="wifiModelHotspotRadiusSecret" placeholder="secret do NAS/hotspot"></div>
+                    <div class="col-md-6"><label class="form-label small">NAS IP do MikroTik</label><input type="text" class="form-control form-control-sm" id="wifiModelHotspotRadiusNasIp" placeholder="191.252.210.31"></div>
+                    <div class="col-12"><hr class="my-2"></div>
+                    <div class="col-12"><div class="small text-muted text-uppercase mb-1">Defaults do script MikroTik</div></div>
+                    <div class="col-md-6"><label class="form-label small">URL do portal cloud</label><input type="text" class="form-control form-control-sm" id="wifiModelMikrotikPortalUrl" placeholder="https://cloud.seudominio.com/hotspot/tico/hotspot-pix"></div>
+                    <div class="col-md-6"><label class="form-label small">DNS name do hotspot</label><input type="text" class="form-control form-control-sm" id="wifiModelMikrotikDnsName" placeholder="login.seudominio.com"></div>
+                    <div class="col-md-4"><label class="form-label small">Interface hotspot</label><input type="text" class="form-control form-control-sm" id="wifiModelMikrotikInterface" placeholder="bridge-hotspot"></div>
+                    <div class="col-md-4"><label class="form-label small">Bridge/LAN</label><input type="text" class="form-control form-control-sm" id="wifiModelMikrotikBridge" placeholder="bridge-hotspot"></div>
+                    <div class="col-md-4"><label class="form-label small">SSID</label><input type="text" class="form-control form-control-sm" id="wifiModelMikrotikSsid" placeholder="WiFi Multi"></div>
+                    <div class="col-md-4"><label class="form-label small">IP do hotspot</label><input type="text" class="form-control form-control-sm" id="wifiModelMikrotikHotspotAddress" placeholder="10.10.10.1"></div>
+                    <div class="col-md-4"><label class="form-label small">Máscara CIDR</label><input type="number" class="form-control form-control-sm" id="wifiModelMikrotikHotspotMask" placeholder="24"></div>
+                    <div class="col-md-4"><label class="form-label small">Porta CoA/Disconnect</label><input type="number" class="form-control form-control-sm" id="wifiModelMikrotikCoaPort" placeholder="3799"></div>
+                    <div class="col-md-6"><label class="form-label small">Pool inicial</label><input type="text" class="form-control form-control-sm" id="wifiModelMikrotikPoolStart" placeholder="10.10.10.10"></div>
+                    <div class="col-md-6"><label class="form-label small">Pool final</label><input type="text" class="form-control form-control-sm" id="wifiModelMikrotikPoolEnd" placeholder="10.10.10.254"></div>
+                    <div class="col-md-6"><label class="form-label small">Host de pagamento / Pix</label><input type="text" class="form-control form-control-sm" id="wifiModelMikrotikPaymentHost" placeholder="pix.seudominio.com"></div>
+                    <div class="col-md-6"><label class="form-label small">Walled garden extra (1 por linha)</label><textarea class="form-control form-control-sm" id="wifiModelMikrotikWalledGarden" rows="3" placeholder="api.whatsapp.com&#10;pagamentos.seudominio.com"></textarea></div>
+                    <div class="col-md-4"><div class="form-check mt-4"><input class="form-check-input" type="checkbox" id="wifiModelPortalEnabled"><label class="form-check-label" for="wifiModelPortalEnabled">Portal captivo</label></div></div>
+                    <div class="col-md-4"><div class="form-check mt-4"><input class="form-check-input" type="checkbox" id="wifiModelRadiusEnabled"><label class="form-check-label" for="wifiModelRadiusEnabled">RADIUS</label></div></div>
+                    <div class="col-md-4"><div class="form-check mt-4"><input class="form-check-input" type="checkbox" id="wifiModelRequiresPhone"><label class="form-check-label" for="wifiModelRequiresPhone">Exige telefone</label></div></div>
+                    <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="wifiModelPaymentRequired"><label class="form-check-label" for="wifiModelPaymentRequired">Exige pagamento</label></div></div>
+                    <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="wifiModelBindMac"><label class="form-check-label" for="wifiModelBindMac">Vincular MAC</label></div></div>
+                    <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="wifiModelIsDefault"><label class="form-check-label" for="wifiModelIsDefault">Modelo padrão</label></div></div>
+                    <div class="col-md-6"><label class="form-label small">Uso ideal (1 por linha)</label><textarea class="form-control form-control-sm" id="wifiModelIdealFor" rows="4"></textarea></div>
+                    <div class="col-md-6"><label class="form-label small">Recursos (1 por linha)</label><textarea class="form-control form-control-sm" id="wifiModelFeatures" rows="4"></textarea></div>
+                    <div class="col-md-6"><label class="form-label small">Fluxo operacional (1 por linha)</label><textarea class="form-control form-control-sm" id="wifiModelFlowSteps" rows="4"></textarea></div>
+                    <div class="col-md-6"><label class="form-label small">Tecnologias (1 por linha)</label><textarea class="form-control form-control-sm" id="wifiModelTechnologies" rows="4"></textarea></div>
+                    <div class="col-md-6"><label class="form-label small">Extras / gateways / CTAs</label><textarea class="form-control form-control-sm" id="wifiModelExtras" rows="4" placeholder="Uma linha para cada item"></textarea></div>
+                    <div class="col-md-6"><label class="form-label small">Planos Pix</label><textarea class="form-control form-control-sm" id="wifiModelPixPlans" rows="4" placeholder="Nome|valor|duracao_min&#10;Pix 1 Hora|2.00|60"></textarea></div>
+                  </div>
+                  </div>
+                  <div class="d-flex gap-2 mt-3">
+                    <button type="button" class="btn btn-sm btn-primary" id="btnSaveWifiModel"><i class="bi bi-check-lg me-1"></i>Salvar modelo</button>
+                    <button type="button" class="btn btn-sm btn-outline-success" id="btnSetWifiModelDefault"><i class="bi bi-star me-1"></i>Definir como padrão</button>
+                    <button type="button" class="btn btn-sm btn-outline-dark" id="btnGenerateWifiModelRsc"><i class="bi bi-router me-1"></i>Gerar .rsc</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCopyWifiModelRsc"><i class="bi bi-clipboard me-1"></i>Copiar</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnDownloadWifiModelRsc"><i class="bi bi-download me-1"></i>Baixar</button>
+                  </div>
+                  <div class="wifi-models-preview-shell mt-3">
+                    <div class="small text-muted text-uppercase mb-2">Script MikroTik do modelo</div>
+                    <div id="wifiModelMikrotikSummary" class="small text-muted mb-2">Salve ou selecione um modelo para gerar o .rsc diretamente por aqui.</div>
+                    <div id="wifiModelMikrotikWarnings" class="mb-2"></div>
+                    <pre id="wifiModelMikrotikOutput" class="border rounded bg-dark text-light p-3 mb-0 small" style="min-height: 220px; white-space: pre-wrap;">Clique em Gerar .rsc para montar o script do MikroTik deste modelo.</pre>
+                  </div>
+                  <div class="wifi-models-preview-shell mt-3">
+                    <div class="small text-muted text-uppercase mb-2">Resumo operacional</div>
+                    <div class="row g-2">
+                      <div class="col-md-6"><label class="form-label small">URL pública do hotspot</label><input type="text" class="form-control form-control-sm" id="wifiModelRuntimePortalUrl" readonly></div>
+                      <div class="col-md-6"><label class="form-label small">Webhook final EFI</label><input type="text" class="form-control form-control-sm" id="wifiModelRuntimeWebhookUrl" readonly></div>
+                      <div class="col-md-6"><label class="form-label small">API Pix</label><input type="text" class="form-control form-control-sm" id="wifiModelRuntimePixApi" readonly></div>
+                      <div class="col-md-6"><label class="form-label small">API RADIUS</label><input type="text" class="form-control form-control-sm" id="wifiModelRuntimeRadiusApi" readonly></div>
+                      <div class="col-md-6"><label class="form-label small">API Voucher</label><input type="text" class="form-control form-control-sm" id="wifiModelRuntimeVoucherApi" readonly></div>
+                      <div class="col-md-6"><label class="form-label small">API Telefone / OTP</label><input type="text" class="form-control form-control-sm" id="wifiModelRuntimeOtpApi" readonly></div>
+                      <div class="col-md-6"><label class="form-label small">Sessão conectada</label><input type="text" class="form-control form-control-sm" id="wifiModelRuntimeConnectedUrl" readonly></div>
+                      <div class="col-md-6"><label class="form-label small">Certificado configurado</label><input type="text" class="form-control form-control-sm" id="wifiModelRuntimeCertInfo" readonly></div>
+                      <div class="col-md-6"><label class="form-label small">Script MikroTik (.rsc)</label><input type="text" class="form-control form-control-sm" id="wifiModelRuntimeMikrotikApi" readonly></div>
+                      <div class="col-md-6"><label class="form-label small">Walled garden efetivo</label><input type="text" class="form-control form-control-sm" id="wifiModelRuntimeWalledGarden" readonly></div>
+                    </div>
+                  </div>
+                  <div class="wifi-models-preview-shell mt-3">
+                    <div class="small text-muted text-uppercase mb-2">Preview do modelo</div>
+                    <div id="wifiModelPreview" class="small text-muted">Selecione um modelo para visualizar a apresentação.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

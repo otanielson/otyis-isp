@@ -11,6 +11,7 @@ import { portalDataRouter } from './portalData.routes.js';
 import { estoqueRouter } from './estoque.routes.js';
 import { clientRouter } from './client.routes.js';
 import { siteConfigRouter } from './siteConfig.routes.js';
+import { hotspotPublicRouter } from './hotspotPublic.routes.js';
 
 export const apiRouter = Router();
 
@@ -24,6 +25,7 @@ apiRouter.use('/portal/estoque', estoqueRouter);
 apiRouter.use('/portal', portalDataRouter);
 apiRouter.use('/portal', portalRouter);
 apiRouter.use('/client', clientRouter);
+apiRouter.use('/', hotspotPublicRouter);
 
 apiRouter.get('/health', async (_req, res) => {
   try {

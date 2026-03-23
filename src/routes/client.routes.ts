@@ -17,16 +17,13 @@ function asyncHandler(fn: (req: Request, res: Response) => Promise<Response | vo
   };
 }
 
-/** POST /api/client/login — body: { cpfCnpj, whatsapp } */
 clientRouter.post(
   '/login',
   asyncHandler(async (req: Request, res: Response): Promise<Response> => {
     const body = req.body || {};
     const rawCpf = body.cpfCnpj ?? body.cpf_cnpj ?? '';
     const rawWhatsapp = body.whatsapp ?? body.telefone ?? '';
-    const cpf = String(rawCpf || '')
-      .replace(/\D/g, '')
-      .trim();
+    const cpf = String(rawCpf || '').replace(/\D/g, '').trim();
     const whatsappNorm = normalizeWhatsapp(String(rawWhatsapp || ''));
 
     if (!cpf || cpf.length < 11) {
@@ -45,9 +42,11 @@ clientRouter.post(
        FROM customers
        WHERE tenant_id = :tid AND cpf_cnpj = :cpf AND whatsapp = :w
        LIMIT 1`,
-      { tid: tenant.id, cpf: cpf, w: whatsappNorm }
+      { tid: tenant.id, cpf, w: whatsappNorm }
     );
-    const list = Array.isArray(rows) ? (rows as { id: number; name: string; whatsapp: string; cpf_cnpj: string }[]) : [];
+    const list = Array.isArray(rows)
+      ? (rows as { id: number; name: string; whatsapp: string; cpf_cnpj: string }[])
+      : [];
     if (!list.length) {
       return res.status(401).json({ error: 'Cliente não encontrado com estes dados.' });
     }
@@ -92,7 +91,7 @@ clientRouter.get(
     let installation: unknown = null;
     try {
       const [instRows] = await pool.query(
-        `SELECT id, plan_code, due_day, address_json, status, installed_at, ont_serial, cto_code, notes
+        `SELECT id, plan_code, due_day, address_json, status, installed_at, ont_serial, cto_code, notes, pppoe_user
          FROM installations
          WHERE customer_id = :cid
          LIMIT 1`,
@@ -114,7 +113,7 @@ clientRouter.get(
     const auth = req.client!;
     const pool = getPool();
     const [rows] = await pool.query(
-      `SELECT i.id, i.ref_month, i.due_date, i.amount, i.plan_code, i.status, i.paid_at, i.created_at
+      `SELECT i.id, i.ref_month, i.due_date, i.amount, i.plan_code, i.status, i.paid_at, i.created_at, i.notes
        FROM invoices i
        WHERE i.customer_id = :cid
        ORDER BY i.due_date DESC, i.id DESC
@@ -138,7 +137,7 @@ clientRouter.get(
     const auth = req.client!;
     const pool = getPool();
     const [rows] = await pool.query(
-      `SELECT id, proposal_id, plan_code, amount, due_day, status, signed_at, starts_at, ends_at, created_at
+      `SELECT id, proposal_id, plan_code, amount, due_day, status, signed_at, starts_at, ends_at, created_at, notes
        FROM contracts
        WHERE tenant_id = :tid AND customer_id = :cid
        ORDER BY created_at DESC
@@ -155,7 +154,9 @@ clientRouter.get(
   asyncHandler(async (req: Request, res: Response): Promise<Response> => {
     const auth = req.client!;
     const pool = getPool();
-    let sql = `SELECT id, subject, priority, status, created_at, closed_at
+    let sql = `SELECT id, subject, priority, status, created_at, closed_at,
+                      defect_text, solution_text, technical_category, channel,
+                      ticket_type, assigned_to_name
                FROM tickets
                WHERE tenant_id = :tid AND customer_id = :cid`;
     const params: Record<string, string | number> = { tid: auth.tenantId, cid: auth.customerId };
@@ -170,6 +171,30 @@ clientRouter.get(
   })
 );
 
+clientRouter.get(
+  '/tickets/:id',
+  requireClientAuth,
+  asyncHandler(async (req: Request, res: Response): Promise<Response> => {
+    const auth = req.client!;
+    const pool = getPool();
+    const id = Number(req.params.id || 0);
+    if (!id) return res.status(400).json({ error: 'Chamado inválido' });
+
+    const [rows] = await pool.query(
+      `SELECT id, subject, priority, status, created_at, closed_at,
+              defect_text, solution_text, technical_category, channel,
+              ticket_type, assigned_to_name
+       FROM tickets
+       WHERE tenant_id = :tid AND customer_id = :cid AND id = :id
+       LIMIT 1`,
+      { tid: auth.tenantId, cid: auth.customerId, id }
+    );
+    const list = Array.isArray(rows) ? rows : [];
+    if (!list.length) return res.status(404).json({ error: 'Chamado não encontrado' });
+    return res.json({ ok: true, row: list[0] });
+  })
+);
+
 clientRouter.post(
   '/tickets',
   requireClientAuth,
@@ -178,13 +203,31 @@ clientRouter.post(
     const body = req.body || {};
     const subject = String(body.subject || '').trim();
     const description = body.description ? String(body.description).trim() : null;
+    const technicalCategory = body.technical_category ? String(body.technical_category).trim() : null;
+    const channel = body.channel ? String(body.channel).trim().toUpperCase() : 'PORTAL_CLIENTE';
+    const ticketType = body.ticket_type ? String(body.ticket_type).trim().toUpperCase() : 'SUPORTE';
+
     if (!subject) return res.status(400).json({ error: 'Assunto é obrigatório' });
 
     const pool = getPool();
     const [r] = await pool.query(
-      `INSERT INTO tickets (tenant_id, customer_id, subject, priority, status)
-       VALUES (:tid, :cid, :subject, 'NORMAL', 'OPEN') RETURNING id`,
-      { tid: auth.tenantId, cid: auth.customerId, subject }
+      `INSERT INTO tickets (
+         tenant_id, customer_id, subject, priority, status,
+         defect_text, technical_category, channel, ticket_type
+       )
+       VALUES (
+         :tid, :cid, :subject, 'NORMAL', 'OPEN',
+         :defectText, :technicalCategory, :channel, :ticketType
+       ) RETURNING id`,
+      {
+        tid: auth.tenantId,
+        cid: auth.customerId,
+        subject,
+        defectText: description,
+        technicalCategory,
+        channel,
+        ticketType,
+      }
     );
     const insertId = (r as { insertId?: number })?.insertId;
 
@@ -200,7 +243,6 @@ clientRouter.post(
       }
     }
 
-    // Enfileira notificação de chamado aberto para o cliente/provedor
     void enqueueNotification({
       tenantId: auth.tenantId,
       customerId: auth.customerId,
@@ -212,4 +254,3 @@ clientRouter.post(
     return res.status(201).json({ ok: true, id: insertId });
   })
 );
-

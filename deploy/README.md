@@ -13,6 +13,12 @@ sudo ./installer/install.sh
 
 Ou na pasta atual: `sudo ./installer/install.sh --here`
 
+Também existe o atalho unificado:
+
+```bash
+sudo ./installer/manage.sh install
+```
+
 Guia completo: **[installer/README.md](../installer/README.md)** e **[installer/PASSO-A-PASSO.md](../installer/PASSO-A-PASSO.md)**.
 
 ---
@@ -31,3 +37,18 @@ npm run build:portal-spa   # gera portal SPA (login+dashboard em uma página)
 ```
 
 O script `./deploy.sh` já inclui `build:portal-spa`. Ele faz pull, build, gera o portal SPA, copia `web/` para `dist/web` e reinicia systemd ou PM2. Assim a **instalação existente** fica igual ao projeto de instalação. O painel `/admin` e o portal `/portal` passam a ter as mesmas funcionalidades do código atualizado.
+
+### Fluxo oficial simplificado
+
+Para atualizar mantendo banco e dados:
+
+```bash
+cd /var/www/otyis-isp
+sudo ./installer/manage.sh update
+```
+
+Para diagnosticar a instalação:
+
+```bash
+sudo ./installer/manage.sh doctor
+```

@@ -62,13 +62,57 @@
     addSection(
       "modalTicket",
       "Atendimento de chamado",
-      '<input type="hidden" id="ticketId" /><div class="mb-2"><strong>ID:</strong> <span id="ticketModalId">—</span><div class="small text-muted" id="ticketModalCustomerInfo"></div></div>' +
-        '<div class="row g-3"><div class="col-lg-6"><div class="mb-2"><label class="form-label small">Buscar cliente</label><input type="text" class="form-control form-control-sm" id="ticketCustomerSearch"><div id="ticketCustomerSearchResults" class="list-group d-none position-relative"></div></div>' +
-        '<div class="row g-2"><div class="col-md-3"><label class="form-label small">ID</label><input type="text" class="form-control form-control-sm" id="ticketCustomerId" readonly></div><div class="col-md-5"><label class="form-label small">Nome</label><input type="text" class="form-control form-control-sm" id="ticketCustomerName" readonly></div><div class="col-md-4"><label class="form-label small">WhatsApp</label><input type="text" class="form-control form-control-sm" id="ticketCustomerWhatsapp" readonly></div></div>' +
-        '<div class="small text-muted mt-1">Selecionado: <span id="ticketCustomerIdDisplay">—</span> <span id="ticketCustomerNameDisplay"></span> <span id="ticketCustomerWhatsappDisplay"></span></div></div>' +
-        '<div class="col-lg-6"><label class="form-label small">Assunto</label><input type="text" class="form-control form-control-sm" id="ticketSubject"><div class="row g-2 mt-2"><div class="col-md-6"><label class="form-label small">Prioridade</label><select class="form-select form-select-sm" id="ticketPriority"><option value="BAIXA">Baixa</option><option value="NORMAL">Normal</option><option value="ALTA">Alta</option><option value="URGENTE">Urgente</option></select></div><div class="col-md-6"><label class="form-label small">Status</label><select class="form-select form-select-sm" id="ticketStatus"><option value="OPEN">Aberto</option><option value="IN_PROGRESS">Em andamento</option><option value="PENDING">Pendente</option><option value="RESOLVED">Resolvido</option><option value="CLOSED">Fechado</option></select></div></div></div></div>' +
-        '<div class="row g-3 mt-1"><div class="col-12"><label class="form-label small">Defeito constatado</label><textarea class="form-control form-control-sm" id="ticketDefectText" rows="4"></textarea></div><div class="col-12"><label class="form-label small">Solução do problema</label><textarea class="form-control form-control-sm" id="ticketSolutionText" rows="4"></textarea></div></div>' +
-        '<div class="d-flex gap-2 mt-3"><button type="button" class="btn btn-secondary btn-sm" id="btnTicketClearCustomer">Limpar cliente</button><button type="button" class="btn btn-outline-secondary btn-sm" id="btnPrintTicket">Imprimir</button><button type="button" class="btn btn-primary btn-sm" id="btnSaveTicket">Salvar</button><button type="button" class="btn btn-success btn-sm" id="btnFinalizeTicket">Finalizar chamado</button></div>'
+      '<input type="hidden" id="ticketId" />' +
+        '<div class="ticket-section">' +
+          '<div class="d-flex justify-content-between align-items-start flex-wrap gap-3">' +
+            '<div>' +
+              '<div class="ticket-section__title"><i class="bi bi-headset"></i>Resumo do atendimento</div>' +
+              '<div class="d-flex align-items-center gap-2 flex-wrap"><strong>Chamado</strong><span id="ticketModalId">?</span></div>' +
+              '<div class="small text-muted mt-2" id="ticketModalCustomerInfo"></div>' +
+            '</div>' +
+            '<div class="small text-muted">Organize o cliente, registre o defeito e finalize o atendimento com um hist?rico claro.</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="ticket-section">' +
+          '<div class="ticket-section__title"><i class="bi bi-person-badge"></i>Cliente vinculado</div>' +
+          '<div class="row g-3 align-items-end">' +
+            '<div class="col-lg-8"><label class="form-label small">Buscar cliente</label><input type="text" class="form-control form-control-sm" id="ticketCustomerSearch" placeholder="Digite nome, telefone ou c?digo"><div id="ticketCustomerSearchResults" class="list-group d-none position-relative"></div></div>' +
+            '<div class="col-lg-4 d-flex justify-content-lg-end"><button type="button" class="btn btn-secondary btn-sm" id="btnTicketClearCustomer">Limpar cliente</button></div>' +
+          '</div>' +
+          '<div class="ticket-customer-cards ticket-customer-cards--full">' +
+            '<div class="ticket-customer-card"><label>ID</label><div class="value" id="ticketCustomerIdDisplay">?</div><input type="hidden" id="ticketCustomerId" readonly><input type="hidden" id="ticketCustomerName" readonly><input type="hidden" id="ticketCustomerWhatsapp" readonly></div>' +
+            '<div class="ticket-customer-card"><label>Cliente</label><div class="value" id="ticketCustomerNameDisplay">?</div></div>' +
+            '<div class="ticket-customer-card"><label>WhatsApp</label><div class="value" id="ticketCustomerWhatsappDisplay">?</div></div>' +
+            '<div class="ticket-customer-card"><label>CPF/CNPJ</label><div class="value" id="ticketCustomerDocumentDisplay">?</div></div>' +
+            '<div class="ticket-customer-card"><label>Plano</label><div class="value" id="ticketCustomerPlanDisplay">?</div></div>' +
+            '<div class="ticket-customer-card"><label>Login PPPoE</label><div class="value" id="ticketCustomerPppoeDisplay">?</div></div>' +
+            '<div class="ticket-customer-card ticket-customer-card--wide"><label>Endereco</label><div class="value" id="ticketCustomerAddressDisplay">?</div></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="ticket-section">' +
+          '<div class="ticket-section__title"><i class="bi bi-clipboard2-pulse"></i>Classifica??o do chamado</div>' +
+          '<div class="row g-3">' +
+            '<div class="col-lg-6"><label class="form-label small">Assunto</label><input type="text" class="form-control form-control-sm" id="ticketSubject" placeholder="Ex: Sem conex?o, queda frequente, lentid?o"></div>' +
+            '<div class="col-md-3"><label class="form-label small">Canal</label><select class="form-select form-select-sm" id="ticketChannel"><option value="WHATSAPP">WhatsApp</option><option value="PHONE">Telefone</option><option value="APP">App</option><option value="PORTAL">Portal</option><option value="PRESENTIAL">Presencial</option></select></div>' +
+            '<div class="col-md-3"><label class="form-label small">Tipo</label><select class="form-select form-select-sm" id="ticketType"><option value="SUPPORT">Suporte tecnico</option><option value="FINANCIAL">Financeiro</option><option value="COMMERCIAL">Comercial</option><option value="CANCELLATION">Cancelamento</option><option value="INSTALLATION">Instalacao</option></select></div>' +
+            '<div class="col-md-3"><label class="form-label small">Prioridade</label><select class="form-select form-select-sm" id="ticketPriority"><option value="LOW">Baixa</option><option value="NORMAL">Normal</option><option value="HIGH">Alta</option><option value="URGENT">Urgente</option></select></div>' +
+            '<div class="col-md-3"><label class="form-label small">Status</label><select class="form-select form-select-sm" id="ticketStatus"><option value="OPEN">Aberto</option><option value="IN_PROGRESS">Em atendimento</option><option value="PENDING">Pendente</option><option value="WAITING_CUSTOMER">Aguardando cliente</option><option value="EN_ROUTE">Em deslocamento</option><option value="RESOLVED">Resolvido</option><option value="CLOSED">Fechado</option><option value="CANCELLED">Cancelado</option></select></div>' +
+            '<div class="col-md-3"><label class="form-label small">Categoria tecnica</label><select class="form-select form-select-sm" id="ticketCategory"><option value="SEM_CONEXAO_PPPOE">Sem conexao PPPoE</option><option value="ONU_OFFLINE">ONU offline</option><option value="SEM_SINAL_OPTICO">Sem sinal optico</option><option value="LENTIDAO">Lentidao</option><option value="WIFI_RUIM">Wi-Fi ruim</option><option value="OUTROS">Outros</option></select></div>' +
+            '<div class="col-md-3"><label class="form-label small">Responsavel</label><input type="text" class="form-control form-control-sm" id="ticketAssignedToName" placeholder="Ex: NOC 01 ou Tecnico Joao"></div>' +
+            '<div class="col-md-3"><label class="form-label small">SLA</label><input type="datetime-local" class="form-control form-control-sm" id="ticketSlaDueAt"></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="ticket-section">' +
+          '<div class="ticket-section__title"><i class="bi bi-tools"></i>Diagn?stico e solu??o</div>' +
+          '<div class="row g-3">' +
+            '<div class="col-12"><label class="form-label small">Defeito constatado</label><textarea class="form-control form-control-sm" id="ticketDefectText" rows="5" placeholder="Descreva sintomas, contexto e o que foi identificado no atendimento"></textarea></div>' +
+            '<div class="col-12"><label class="form-label small">Solu??o do problema</label><textarea class="form-control form-control-sm" id="ticketSolutionText" rows="6" placeholder="Registre o procedimento executado, testes e resultado entregue ao cliente"></textarea></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="d-flex gap-2 mt-3 flex-wrap justify-content-between">' +
+          '<div class="d-flex gap-2 flex-wrap"><button type="button" class="btn btn-outline-secondary btn-sm" id="btnPrintTicket">Imprimir</button></div>' +
+          '<div class="d-flex gap-2 flex-wrap"><button type="button" class="btn btn-outline-secondary btn-sm" onclick="safeHideModal(&quot;modalTicket&quot;)">Cancelar</button><button type="button" class="btn btn-primary btn-sm" id="btnSaveTicket">Salvar</button><button type="button" class="btn btn-success btn-sm" id="btnFinalizeTicket">Finalizar chamado</button></div>' +
+        '</div>'
     );
   }
 
@@ -76,11 +120,63 @@
     addSection(
       "modalContractModel",
       "Modelo de contrato",
-      '<h6 id="contractModelModalTitle" class="mb-3">Novo modelo de contrato</h6><input type="hidden" id="contractModelId" />' +
-        '<div class="row g-3"><div class="col-md-8"><label class="form-label small">Nome do modelo</label><input type="text" class="form-control form-control-sm" id="contractModelName"></div><div class="col-md-4"><label class="form-label small">Padrão</label><div class="form-check mt-2"><input type="checkbox" class="form-check-input" id="contractModelIsDefault"><label class="form-check-label" for="contractModelIsDefault">Usar como padrão</label></div></div></div>' +
-        '<div class="mt-2"><label class="form-label small">Descrição</label><input type="text" class="form-control form-control-sm" id="contractModelDescription"></div>' +
-        '<div class="mt-2"><label class="form-label small">Texto do contrato</label><div id="contractModelEditor" style="min-height:240px;background:#fff;border:1px solid #ddd;border-radius:.375rem"></div></div>' +
-        '<div class="d-flex gap-2 mt-3"><button type="button" class="btn btn-primary btn-sm" id="btnSaveContractModel">Salvar modelo</button></div>'
+      '<div class="contract-model-editor">' +
+        '<input type="hidden" id="contractModelId" />' +
+        '<div class="contract-model-editor__hero">' +
+          '<div><h6 id="contractModelModalTitle" class="mb-1">Novo modelo de contrato</h6><p class="contract-model-editor__subtitle mb-0">Crie um modelo padrão, organize as cláusulas e use variáveis do cliente e do contrato sem precisar editar HTML manualmente.</p></div>' +
+          '<label class="contract-model-editor__default"><input type="checkbox" class="form-check-input" id="contractModelIsDefault"><span>Usar como padrão</span></label>' +
+        '</div>' +
+        '<div class="contract-model-editor__layout">' +
+          '<div class="contract-model-editor__main">' +
+            '<div class="contract-model-editor__card">' +
+              '<div class="contract-model-editor__card-head"><span><i class="bi bi-card-text me-2"></i>Informações do modelo</span></div>' +
+              '<div class="contract-model-editor__card-body">' +
+                '<div class="row g-3"><div class="col-md-7"><label class="form-label small">Nome do modelo</label><input type="text" class="form-control form-control-sm" id="contractModelName" placeholder="Ex: Contrato padrão residencial"></div><div class="col-md-5"><label class="form-label small">Descrição</label><input type="text" class="form-control form-control-sm" id="contractModelDescription" placeholder="Resumo rápido do uso deste modelo"></div></div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="contract-model-editor__card">' +
+              '<div class="contract-model-editor__card-head"><span><i class="bi bi-pencil-square me-2"></i>Texto do contrato</span><small>Editor visual com suporte a variáveis</small></div>' +
+              '<div class="contract-model-editor__card-body">' +
+                '<div id="contractModelEditor" class="contract-model-editor__quill"></div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="contract-model-editor__actions"><button type="button" class="btn btn-primary btn-sm" id="btnSaveContractModel"><i class="bi bi-check-lg me-1"></i>Salvar modelo</button></div>' +
+          '</div>' +
+          '<aside class="contract-model-editor__side">' +
+            '<div class="contract-model-editor__card">' +
+              '<div class="contract-model-editor__card-head"><span><i class="bi bi-braces me-2"></i>Variáveis disponíveis</span><small>Clique para inserir</small></div>' +
+              '<div class="contract-model-editor__card-body">' +
+                '<div class="contract-model-editor__tokens">' +
+                  '<button type="button" class="btn btn-sm btn-outline-secondary" data-contract-variable="{{contract_id}}">{{contract_id}}</button>' +
+                  '<button type="button" class="btn btn-sm btn-outline-secondary" data-contract-variable="{{customer_name}}">{{customer_name}}</button>' +
+                  '<button type="button" class="btn btn-sm btn-outline-secondary" data-contract-variable="{{customer_whatsapp}}">{{customer_whatsapp}}</button>' +
+                  '<button type="button" class="btn btn-sm btn-outline-secondary" data-contract-variable="{{customer_document}}">{{customer_document}}</button>' +
+                  '<button type="button" class="btn btn-sm btn-outline-secondary" data-contract-variable="{{customer_address}}">{{customer_address}}</button>' +
+                  '<button type="button" class="btn btn-sm btn-outline-secondary" data-contract-variable="{{plan_code}}">{{plan_code}}</button>' +
+                  '<button type="button" class="btn btn-sm btn-outline-secondary" data-contract-variable="{{amount}}">{{amount}}</button>' +
+                  '<button type="button" class="btn btn-sm btn-outline-secondary" data-contract-variable="{{due_day}}">{{due_day}}</button>' +
+                  '<button type="button" class="btn btn-sm btn-outline-secondary" data-contract-variable="{{starts_at}}">{{starts_at}}</button>' +
+                  '<button type="button" class="btn btn-sm btn-outline-secondary" data-contract-variable="{{date}}">{{date}}</button>' +
+                  '<button type="button" class="btn btn-sm btn-outline-secondary" data-contract-variable="{{comodato_items}}">{{comodato_items}}</button>' +
+                  '<button type="button" class="btn btn-sm btn-outline-secondary" data-contract-variable="{{observations}}">{{observations}}</button>' +
+                '</div>' +
+                '<div class="contract-model-editor__hint">Use essas sintaxes para preencher automaticamente dados do cliente, plano, vencimento, comodato e observações.</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="contract-model-editor__card">' +
+              '<div class="contract-model-editor__card-head"><span><i class="bi bi-lightbulb me-2"></i>Boas práticas</span></div>' +
+              '<div class="contract-model-editor__card-body">' +
+                '<ul class="contract-model-editor__tips">' +
+                  '<li>Comece com identificação das partes e resumo do plano contratado.</li>' +
+                  '<li>Use {{amount}}, {{due_day}} e {{starts_at}} nas cláusulas comerciais.</li>' +
+                  '<li>Inclua {{comodato_items}} se houver equipamentos vinculados.</li>' +
+                  '<li>Finalize com local, data e campo de assinatura.</li>' +
+                '</ul>' +
+              '</div>' +
+            '</div>' +
+          '</aside>' +
+        '</div>' +
+      '</div>'
     );
 
     addSection(
@@ -93,35 +189,50 @@
     addSection(
       "modalCadastrarContrato",
       "Novo contrato",
-      '<input type="hidden" id="cadContratoCustomerId" />' +
-        '<div class="mb-2"><strong>Cliente:</strong> <span id="cadContratoClienteNome">—</span></div>' +
-        '<div id="cadContratoClienteCard" class="alert alert-light py-2 mb-3">Contrato do cliente selecionado</div>' +
-        '<div id="cadContratoErro" class="alert alert-danger d-none py-2 small"></div>' +
-        '<div class="cad-contrato-wizard mb-3">' +
-          '<button type="button" class="btn btn-outline-primary btn-sm cad-contrato-wizard-step active" data-cad-step="1">1 Plano</button>' +
-          '<button type="button" class="btn btn-outline-primary btn-sm cad-contrato-wizard-step" data-cad-step="2">2 Acesso</button>' +
-          '<button type="button" class="btn btn-outline-primary btn-sm cad-contrato-wizard-step" data-cad-step="3">3 Documento</button>' +
-          '<button type="button" class="btn btn-outline-primary btn-sm cad-contrato-wizard-step" data-cad-step="4">4 Revisão</button>' +
+      '<div class="cad-contrato-modal__wizard-header">' +
+        '<input type="hidden" id="cadContratoCustomerId" />' +
+        '<div class="cad-contrato-card cad-contrato-card--cliente">' +
+          '<div class="cad-contrato-card__head"><span><i class="bi bi-person-badge me-2"></i>Cliente selecionado</span></div>' +
+          '<div class="cad-contrato-card__body">' +
+            '<div class="cad-contrato-card__label">Cliente</div>' +
+            '<div class="cad-contrato-card__value" id="cadContratoClienteNome">—</div>' +
+            '<div id="cadContratoClienteCard" class="cad-contrato-card__hint">Preencha o contrato com base neste cliente.</div>' +
+          '</div>' +
         '</div>' +
+        '<div class="cad-contrato-wizard-steps mb-3">' +
+          '<button type="button" class="btn btn-outline-primary btn-sm cad-contrato-wizard-step active" data-cad-step="1"><span class="cad-contrato-wizard-step__num">1</span><span>Plano</span></button>' +
+          '<button type="button" class="btn btn-outline-primary btn-sm cad-contrato-wizard-step" data-cad-step="2"><span class="cad-contrato-wizard-step__num">2</span><span>Acesso</span></button>' +
+          '<button type="button" class="btn btn-outline-primary btn-sm cad-contrato-wizard-step" data-cad-step="3"><span class="cad-contrato-wizard-step__num">3</span><span>Documento</span></button>' +
+          '<button type="button" class="btn btn-outline-primary btn-sm cad-contrato-wizard-step" data-cad-step="4"><span class="cad-contrato-wizard-step__num">4</span><span>Revisão</span></button>' +
+        '</div>' +
+        '<div id="cadContratoErro" class="alert alert-danger d-none py-2 small"></div>' +
+      '</div>' +
         '<div id="cadContratoPane1" class="cad-contrato-pane">' +
+          '<div class="cad-contrato-card"><div class="cad-contrato-card__head"><span><i class="bi bi-router me-2"></i>Plano e cobrança</span></div><div class="cad-contrato-card__body">' +
           '<div class="row g-3"><div class="col-md-6"><label class="form-label small">Plano</label><select class="form-select form-select-sm" id="cadContratoPlano"></select></div><div class="col-md-3"><label class="form-label small">Valor mensal</label><input type="number" step="0.01" class="form-control form-control-sm" id="cadContratoValor"></div><div class="col-md-3"><label class="form-label small">Vencimento</label><input type="number" min="1" max="28" class="form-control form-control-sm" id="cadContratoVencimento" value="10"></div></div>' +
           '<div class="row g-3 mt-1"><div class="col-md-3"><label class="form-label small">Gerar fatura</label><select class="form-select form-select-sm" id="cadContratoGerarFatura"><option value="1">Sim</option><option value="0">Não</option></select></div><div class="col-md-3"><label class="form-label small">Desconto recorrente</label><input type="text" class="form-control form-control-sm" id="cadContratoDescontoRecorrente"></div><div class="col-md-3"><label class="form-label small">Desconto até venc.</label><input type="number" step="0.01" class="form-control form-control-sm" id="cadContratoDescontoAteVenc"></div><div class="col-md-3"><label class="form-label small">Acréscimo</label><input type="number" step="0.01" class="form-control form-control-sm" id="cadContratoAcrescimo"></div></div>' +
           '<div class="row g-3 mt-1"><div class="col-md-6"><label class="form-label small">Isentar até</label><input type="date" class="form-control form-control-sm" id="cadContratoIsentarAte"></div><div class="col-md-6"><label class="form-label small">Liberar até</label><input type="date" class="form-control form-control-sm" id="cadContratoLiberarAte"></div></div>' +
-          '<div class="mt-2"><label class="form-label small">Observações</label><textarea class="form-control form-control-sm" id="cadContratoObs" rows="2"></textarea></div>' +
-          '<div class="mt-2 d-flex gap-2 align-items-center"><span class="small text-muted">Total calculado:</span><strong id="cadContratoTotalCalculado">R$ 0,00</strong></div>' +
+          '<div class="mt-3"><label class="form-label small">Observações</label><textarea class="form-control form-control-sm" id="cadContratoObs" rows="2"></textarea></div>' +
+          '<div class="cad-contrato-total mt-3"><div class="cad-contrato-total__label">Total calculado</div><div class="cad-contrato-total__value" id="cadContratoTotalCalculado">R$ 0,00</div></div>' +
+          '</div></div>' +
         '</div>' +
         '<div id="cadContratoPane2" class="cad-contrato-pane d-none">' +
+          '<div class="cad-contrato-card"><div class="cad-contrato-card__head"><span><i class="bi bi-wifi me-2"></i>Acesso e instalação</span></div><div class="cad-contrato-card__body">' +
           '<div class="row g-3"><div class="col-md-4"><label class="form-label small">Já está instalado?</label><div class="d-flex gap-3 mt-2"><div class="form-check"><input type="radio" class="form-check-input" name="cadContratoJaInstalado" id="cadContratoJaInstaladoNao" checked><label class="form-check-label" for="cadContratoJaInstaladoNao">Não</label></div><div class="form-check"><input type="radio" class="form-check-input" name="cadContratoJaInstalado" id="cadContratoJaInstaladoSim"><label class="form-check-label" for="cadContratoJaInstaladoSim">Sim</label></div></div></div><div class="col-md-4"><label class="form-label small">Criar acesso agora</label><input type="checkbox" class="form-check-input d-block mt-2" id="cadContratoCriarAcesso" checked></div><div class="col-md-4"><label class="form-label small">Sugerir login</label><button type="button" class="btn btn-outline-primary btn-sm d-block mt-2" id="btnCadContratoSugerirLogin">Sugerir</button></div></div>' +
           '<div id="cadContratoBlocoNaoInstalado" class="mt-3"><div class="row g-3"><div class="col-md-6"><label class="form-label small">Usuário PPPoE</label><input type="text" class="form-control form-control-sm" id="cadContratoLogin"></div><div class="col-md-6"><label class="form-label small">Senha PPPoE</label><input type="text" class="form-control form-control-sm" id="cadContratoSenha"></div><div class="col-md-3"><button type="button" class="btn btn-outline-secondary btn-sm mt-2" id="btnCadContratoGerarSenha">Gerar senha</button></div><div class="col-md-3"><button type="button" class="btn btn-outline-secondary btn-sm mt-2" id="btnCadContratoCopiarSenha">Copiar senha</button></div></div></div>' +
           '<div id="cadContratoBlocoJaInstalado" class="mt-3 d-none"><div class="row g-3"><div class="col-md-6"><label class="form-label small">Usuário</label><input type="text" class="form-control form-control-sm" id="cadContratoLoginInstalado"></div><div class="col-md-6"><label class="form-label small">Senha</label><input type="text" class="form-control form-control-sm" id="cadContratoSenhaInstalado"></div></div></div>' +
+          '</div></div>' +
         '</div>' +
         '<div id="cadContratoPane3" class="cad-contrato-pane d-none">' +
+          '<div class="cad-contrato-card"><div class="cad-contrato-card__head"><span><i class="bi bi-file-earmark-text me-2"></i>Documento e assinatura</span></div><div class="cad-contrato-card__body">' +
           '<div class="row g-3"><div class="col-md-8"><label class="form-label small">Modelo do contrato</label><select class="form-select form-select-sm" id="cadContratoModeloDocumento"></select></div><div class="col-md-4"><label class="form-label small">Modo de geração</label><div class="d-flex gap-2 mt-2"><div class="form-check"><input type="radio" class="form-check-input" name="cadContratoModo" id="cadContratoModoA" checked><label class="form-check-label" for="cadContratoModoA">Automático</label></div><div class="form-check"><input type="radio" class="form-check-input" name="cadContratoModo" id="cadContratoModoB"><label class="form-check-label" for="cadContratoModoB">Assinatura antes</label></div><div class="form-check"><input type="radio" class="form-check-input" name="cadContratoModo" id="cadContratoModoC"><label class="form-check-label" for="cadContratoModoC">Gerar depois</label></div></div></div></div>' +
-          '<div class="mt-2"><label class="form-label small">Aceite dos termos</label><input type="checkbox" class="form-check-input ms-2" id="cadContratoAceite"></div>' +
-          '<div class="mt-2 text-muted" id="cadContratoPreviewPlaceholder">Pré-visualização</div><iframe id="cadContratoPreviewIframe" style="display:none;width:100%;min-height:220px;border:1px solid #ddd"></iframe>' +
+          '<div class="cad-contrato-card__hint mt-3">Sintaxes do modelo: {{customer_name}}, {{customer_document}}, {{customer_address}}, {{plan_code}}, {{amount}}, {{due_day}}, {{starts_at}}, {{date}}, {{comodato_items}}, {{observations}}.</div>' +
+          '<div class="mt-3"><label class="form-label small">Aceite dos termos</label><input type="checkbox" class="form-check-input ms-2" id="cadContratoAceite"></div>' +
+          '<div class="mt-3 text-muted" id="cadContratoPreviewPlaceholder">Selecione um modelo e os dados do plano para ver a pré-visualização.</div><iframe id="cadContratoPreviewIframe" style="display:none;width:100%;min-height:220px;border:1px solid #ddd;border-radius:12px;background:#fff"></iframe>' +
+          '</div></div>' +
         '</div>' +
         '<div id="cadContratoPane4" class="cad-contrato-pane d-none">' +
-          '<dl class="row small mb-3">' +
+          '<div class="cad-contrato-card"><div class="cad-contrato-card__head"><span><i class="bi bi-clipboard-check me-2"></i>Resumo final</span></div><div class="cad-contrato-card__body"><dl class="row small mb-3 cad-contrato-resumo">' +
             '<dt class="col-sm-3">Plano</dt><dd class="col-sm-9" id="cadContratoResumoPlano">—</dd>' +
             '<dt class="col-sm-3">Valor</dt><dd class="col-sm-9" id="cadContratoResumoValor">—</dd>' +
             '<dt class="col-sm-3">Vencimento</dt><dd class="col-sm-9" id="cadContratoResumoVencimento">—</dd>' +
@@ -129,10 +240,13 @@
             '<dt class="col-sm-3">Gerar fatura</dt><dd class="col-sm-9" id="cadContratoResumoGerarFatura">—</dd>' +
             '<dt class="col-sm-3">Acesso</dt><dd class="col-sm-9" id="cadContratoResumoAcesso">—</dd>' +
             '<dt class="col-sm-3">Contrato</dt><dd class="col-sm-9" id="cadContratoResumoDocumento">—</dd>' +
-          '</dl>' +
+          '</dl></div></div>' +
         '</div>' +
-        '<div class="mt-2"><label class="form-label small">Equipamentos / comodato</label><div id="cadContratoEquipamentosList"></div><template id="cadContratoEquipamentoRowTpl"><div class="cad-contrato-equipamento-row row g-2 align-items-end mb-2"><div class="col-md-2"><select class="form-select form-select-sm cad-eq-tipo"><option value="COMODATO">Comodato</option><option value="VENDA">Venda</option></select></div><div class="col-md-3"><input type="text" class="form-control form-control-sm cad-eq-item" placeholder="Item/Modelo"></div><div class="col-md-2"><input type="text" class="form-control form-control-sm cad-eq-serial" placeholder="Serial / MAC"></div><div class="col-md-2 cad-eq-valor-wrap"><input type="number" step="0.01" class="form-control form-control-sm cad-eq-valor" placeholder="Valor"></div><div class="col-md-2 cad-eq-multa-wrap"><input type="number" step="0.01" class="form-control form-control-sm cad-eq-multa" placeholder="Multa"></div><div class="col-md-1"><input type="number" class="form-control form-control-sm cad-eq-os" placeholder="OS"></div><div class="col-md-1"><button type="button" class="btn btn-sm btn-outline-danger cad-eq-remove">x</button></div></div></template><button type="button" class="btn btn-outline-primary btn-sm mt-2" id="btnCadContratoAddEquipamento">Adicionar item</button></div>' +
-        '<div class="d-flex gap-2 mt-3"><button type="button" class="btn btn-secondary btn-sm" id="btnCadContratoAnterior">Anterior</button><button type="button" class="btn btn-primary btn-sm" id="btnCadContratoProximo"><span class="btn-text">Próximo</span></button><button type="button" class="btn btn-success btn-sm d-none" id="btnSalvarCadastroContrato">Finalizar</button><button type="button" class="btn btn-outline-secondary btn-sm" id="btnCadContratoAtualizarPreview">Atualizar pré-visualização</button></div>'
+        '<div class="cad-contrato-card"><div class="cad-contrato-card__head"><span><i class="bi bi-box-seam me-2"></i>Equipamentos e comodato</span></div><div class="cad-contrato-card__body">' +
+        '<div class="cad-contrato-card__hint">Adicione equipamentos vinculados ao contrato, em comodato ou venda.</div>' +
+        '<div id="cadContratoEquipamentosList" class="cad-contrato-equipamentos-list"></div><template id="cadContratoEquipamentoRowTpl"><div class="cad-contrato-equipamento-row row g-2 align-items-end mb-2"><div class="col-md-2"><select class="form-select form-select-sm cad-eq-tipo"><option value="COMODATO">Comodato</option><option value="VENDA">Venda</option></select></div><div class="col-md-3"><input type="text" class="form-control form-control-sm cad-eq-item" placeholder="Item/Modelo"></div><div class="col-md-2"><input type="text" class="form-control form-control-sm cad-eq-serial" placeholder="Serial / MAC"></div><div class="col-md-2 cad-eq-valor-wrap"><input type="number" step="0.01" class="form-control form-control-sm cad-eq-valor" placeholder="Valor"></div><div class="col-md-2 cad-eq-multa-wrap"><input type="number" step="0.01" class="form-control form-control-sm cad-eq-multa" placeholder="Multa"></div><div class="col-md-1"><input type="number" class="form-control form-control-sm cad-eq-os" placeholder="OS"></div><div class="col-md-1"><button type="button" class="btn btn-sm btn-outline-danger cad-eq-remove">x</button></div></div></template><button type="button" class="btn btn-outline-primary btn-sm mt-2" id="btnCadContratoAddEquipamento">Adicionar item</button>' +
+        '</div></div>' +
+        '<div class="cad-contrato-modal__footer d-flex gap-2 mt-3"><button type="button" class="btn btn-outline-danger btn-sm" id="btnCadContratoCancelar" onclick="safeHideModal(\'modalCadastrarContrato\')">Cancelar</button><button type="button" class="btn btn-secondary btn-sm" id="btnCadContratoAnterior">Anterior</button><button type="button" class="btn btn-primary btn-sm" id="btnCadContratoProximo"><span class="btn-text">Próximo</span></button><button type="button" class="btn btn-success btn-sm d-none" id="btnSalvarCadastroContrato">Finalizar</button><button type="button" class="btn btn-outline-secondary btn-sm" id="btnCadContratoAtualizarPreview">Atualizar pré-visualização</button></div>'
     );
 
     addSection(
@@ -349,17 +463,21 @@
     addSection(
       "tab-tickets",
       "Suporte",
-      '<div class="admin-panel os-panel">' +
+      '<div class="admin-panel os-panel support-noc-panel">' +
         '<div class="support-header">' +
-          '<div class="support-header__title"><i class="bi bi-headset"></i>Suporte - Chamados e Ordens de Serviço</div>' +
+          '<div class="support-header__title-wrap">' +
+            '<div class="support-header__eyebrow">NOC do provedor</div>' +
+            '<div class="support-header__title"><i class="bi bi-headset"></i>Suporte - Chamados e Ordens de Servi?o</div>' +
+            '<div class="support-header__subtitle">Vis?o operacional unificada para triagem, atendimento e encerramento.</div>' +
+          '</div>' +
           '<div class="support-header__tools">' +
             '<div class="support-header__group">' +
               '<span class="support-header__group-label">Filtros</span>' +
               '<select class="form-select" id="supportFilterType">' +
                 '<option value="">Todos os tipos</option>' +
                 '<option value="TICKET">Chamado</option>' +
-                '<option value="INSTALLATION">Instalação</option>' +
-                '<option value="MAINTENANCE">Manutenção</option>' +
+                '<option value="INSTALLATION">Instala??o</option>' +
+                '<option value="MAINTENANCE">Manuten??o</option>' +
                 '<option value="SUPPORT">Suporte (OS)</option>' +
                 '<option value="UPGRADE">Upgrade</option>' +
                 '<option value="OTHER">Outro</option>' +
@@ -368,26 +486,31 @@
                 '<option value="">Todos os status</option>' +
                 '<optgroup label="Em aberto"><option value="OPEN">Aberto</option></optgroup>' +
                 '<optgroup label="Em andamento"><option value="IN_PROGRESS">Em andamento</option><option value="PENDING">Pendente</option></optgroup>' +
-                '<optgroup label="Encerrados"><option value="_DONE_">Resolvido / Concluído / Fechado</option><option value="RESOLVED">Resolvido (chamado)</option><option value="CLOSED">Fechado (chamado)</option><option value="COMPLETED">Concluído (OS)</option></optgroup>' +
+                '<optgroup label="Encerrados"><option value="_DONE_">Resolvido / Conclu?do / Fechado</option><option value="RESOLVED">Resolvido (chamado)</option><option value="CLOSED">Fechado (chamado)</option><option value="COMPLETED">Conclu?do (OS)</option></optgroup>' +
                 '<optgroup label="Cancelado"><option value="CANCELLED">Cancelado</option></optgroup>' +
               '</select>' +
             '</div>' +
             '<div class="support-header__group">' +
-              '<span class="support-header__group-label">Ações</span>' +
+              '<span class="support-header__group-label">A??es</span>' +
               '<button type="button" class="support-header__btn support-header__btn--refresh" id="btnLoadSupport" title="Recarregar lista"><i class="bi bi-arrow-clockwise"></i><span>Atualizar</span></button>' +
               '<button type="button" class="support-header__btn support-header__btn--ticket" id="btnNewTicket" title="Abrir novo chamado"><i class="bi bi-chat-left-text"></i><span>Novo chamado</span></button>' +
-              '<button type="button" class="support-header__btn support-header__btn--os" id="btnNewServiceOrder" title="Criar ordem de serviço"><i class="bi bi-tools"></i><span>Nova OS</span></button>' +
+              '<button type="button" class="support-header__btn support-header__btn--os" id="btnNewServiceOrder" title="Criar ordem de servi?o"><i class="bi bi-tools"></i><span>Nova OS</span></button>' +
             '</div>' +
           '</div>' +
         '</div>' +
         '<div class="admin-panel__body">' +
+          '<div class="support-noc-strip">' +
+            '<div class="support-noc-strip__item"><span class="support-noc-strip__label">Modo</span><strong>Opera??o ao vivo</strong></div>' +
+            '<div class="support-noc-strip__item"><span class="support-noc-strip__label">Escopo</span><strong>Chamados + OS</strong></div>' +
+            '<div class="support-noc-strip__item"><span class="support-noc-strip__label">Atualiza??o</span><strong>Painel manual</strong></div>' +
+          '</div>' +
           '<div class="os-kpis">' +
             '<div class="os-kpi os-kpi--total"><div class="os-kpi__icon"><i class="bi bi-list-ul"></i></div><div class="os-kpi__value" id="supportKpiTotal">0</div><div class="os-kpi__label">Total</div></div>' +
             '<div class="os-kpi os-kpi--open"><div class="os-kpi__icon"><i class="bi bi-circle"></i></div><div class="os-kpi__value" id="supportKpiOpen">0</div><div class="os-kpi__label">Abertos</div></div>' +
             '<div class="os-kpi os-kpi--progress"><div class="os-kpi__icon"><i class="bi bi-gear"></i></div><div class="os-kpi__value" id="supportKpiProgress">0</div><div class="os-kpi__label">Em andamento</div></div>' +
-            '<div class="os-kpi os-kpi--completed"><div class="os-kpi__icon"><i class="bi bi-check2-circle"></i></div><div class="os-kpi__value" id="supportKpiCompleted">0</div><div class="os-kpi__label">Resolvidos / Concluídos</div></div>' +
+            '<div class="os-kpi os-kpi--completed"><div class="os-kpi__icon"><i class="bi bi-check2-circle"></i></div><div class="os-kpi__value" id="supportKpiCompleted">0</div><div class="os-kpi__label">Resolvidos / Conclu?dos</div></div>' +
           '</div>' +
-          '<div class="os-toolbar"><span class="text-muted small" id="supportFilterInfo">Chamados e ordens de serviço em um só lugar.</span></div>' +
+          '<div class="os-toolbar support-toolbar"><span class="text-muted small" id="supportFilterInfo">Chamados e ordens de servi?o em um s? lugar.</span></div>' +
           '<div class="os-table-wrap"><div id="outTickets">Clique em <strong>Atualizar</strong> para carregar.</div></div>' +
         '</div>' +
       '</div>'

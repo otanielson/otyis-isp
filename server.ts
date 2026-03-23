@@ -16,6 +16,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = __dirname.endsWith('dist') ? path.join(__dirname, '..') : __dirname;
 const webDir = path.join(rootDir, 'web');
+const hotspotPath = path.join(webDir, 'hotspot', 'index.html');
+const hotspotConnectedPath = path.join(webDir, 'hotspot', 'connected.html');
+const hotspotSuccessPath = path.join(webDir, 'hotspot', 'success.html');
+const hotspotExpiredPath = path.join(webDir, 'hotspot', 'expired.html');
 
 const app = express();
 
@@ -39,6 +43,27 @@ app.use(resolveTenant);
 app.use('/admin', adminPageRouter);
 app.use('/portal', portalPageRouter);
 app.use('/api', apiRouter);
+app.get('/hotspot', (_req, res) => {
+  res.sendFile(hotspotPath);
+});
+app.get('/hotspot/', (_req, res) => {
+  res.sendFile(hotspotPath);
+});
+app.get('/hotspot/conectado', (_req, res) => {
+  res.sendFile(hotspotConnectedPath);
+});
+app.get('/hotspot/sucesso', (_req, res) => {
+  res.sendFile(hotspotSuccessPath);
+});
+app.get('/hotspot/expirado', (_req, res) => {
+  res.sendFile(hotspotExpiredPath);
+});
+app.get('/hotspot/:tenantOrTemplate', (_req, res) => {
+  res.sendFile(hotspotPath);
+});
+app.get('/hotspot/:tenantSlug/:templateSlug', (_req, res) => {
+  res.sendFile(hotspotPath);
+});
 
 /** Modo tenant: app rodando no container (portal + site em um). Serve site static de site/static. */
 const TENANT_MODE = !!process.env.TENANT_SLUG;

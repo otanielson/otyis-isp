@@ -36,6 +36,55 @@ Por padrão **tudo é instalado na pasta do projeto** (ex.: `/var/www/otyis-isp`
 - **Instalar em outra pasta:** `sudo ./installer/install.sh --dir=/opt/meu-provedor`
 - **Já usa PM2:** `sudo ./installer/install.sh --pm2` — o instalador não cria/inicia o systemd do app; o FreeRADIUS continua em systemd. Depois: `pm2 restart all` (ou o nome do seu processo).
 
+## Instalador unificado
+
+Agora o projeto também tem um ponto único de operação:
+
+```bash
+cd /var/www/otyis-isp
+sudo ./installer/manage.sh install
+sudo ./installer/manage.sh update
+sudo ./installer/manage.sh doctor
+```
+
+Comandos disponíveis:
+
+| Comando | O que faz |
+|---------|-----------|
+| `install` | Instalação nova e completa da VPS |
+| `update` | Atualiza app + build + migrações, mantendo banco e dados |
+| `doctor` | Diagnóstico rápido da instalação |
+| `reinstall` | Alias para reinstalação mantendo banco |
+
+### Atualizar mantendo dados
+
+```bash
+cd /var/www/otyis-isp
+sudo ./installer/manage.sh update
+```
+
+Se quiser atualizar o código com Git antes:
+
+```bash
+sudo ./installer/manage.sh update --pull
+```
+
+### Diagnóstico da VPS
+
+```bash
+cd /var/www/otyis-isp
+sudo ./installer/manage.sh doctor
+```
+
+O `doctor` verifica:
+
+- `.env`
+- Node.js / npm / psql / systemd / FreeRADIUS
+- serviços `multi-portal` e `freeradius-standalone`
+- conexão com PostgreSQL
+- tabelas principais (`tenants`, `radcheck`, `hotspot_templates`, `hotspot_payment_sessions`, `vouchers`)
+- portas da aplicação e do RADIUS
+
 O script pergunta interativamente (ou use variáveis de ambiente):
 
 - **Nome do provedor** (ex.: Minha Net)

@@ -372,31 +372,20 @@ function createFinanceModule(deps: PortalFinanceDeps): { loadFinance: () => void
       });
   }
 
-  const financePageMap: Record<string, string> = {
-    titulos: 'finance-page-titulos',
-    cadastros: 'finance-page-cadastros',
-    carnes: 'finance-page-carnes',
-    protocolos: 'finance-page-protocolos',
-    caixas: 'finance-page-caixas',
-    pagar: 'finance-page-pagar',
-    receber: 'finance-page-receber',
-    declaracoes: 'finance-page-declaracoes',
-    acrescimos: 'finance-page-acrescimos',
-    cobranca: 'finance-page-cobranca',
-    pix: 'finance-page-pix',
-  };
-
   let financeWired = false;
+  function paneRoute(paneId: string): string {
+    return '/portal/financeiro/' + (paneId || 'titulos');
+  }
   function openFinancePage(paneId: string): HTMLElement | null {
-    const pageId = financePageMap[paneId];
-    if (!pageId) return null;
     document.querySelectorAll('.finance-menu-btn').forEach((b) => b.classList.remove('active'));
     const btn = document.querySelector('.finance-menu-btn[data-finance-pane="' + paneId + '"]');
     if (btn) btn.classList.add('active');
-    const page = safeShowModal(pageId);
+    document.querySelectorAll('.finance-pane').forEach((pane) => pane.classList.remove('active'));
+    const pane = document.getElementById('finance-pane-' + paneId);
+    if (pane) pane.classList.add('active');
     if (paneId === 'titulos') loadFinance();
     if (paneId === 'caixas') loadCaixaMovements();
-    return page;
+    return pane as HTMLElement | null;
   }
 
   function wireFinanceMenu(): void {
@@ -407,8 +396,13 @@ function createFinanceModule(deps: PortalFinanceDeps): { loadFinance: () => void
       const target = ev.target as HTMLElement | null;
       const menuBtn = target && target.closest ? target.closest('.finance-menu-btn') : null;
       if (menuBtn && getEl('tab-finance')) {
+        ev.preventDefault();
+        ev.stopPropagation();
         const paneId = menuBtn.getAttribute('data-finance-pane');
         if (!paneId) return;
+        if ((window.location.pathname || '') !== paneRoute(paneId)) {
+          window.history.pushState({}, '', paneRoute(paneId));
+        }
         openFinancePage(paneId);
         return;
       }
@@ -416,6 +410,9 @@ function createFinanceModule(deps: PortalFinanceDeps): { loadFinance: () => void
       if (closeBtn && getEl('tab-finance')) {
         ev.preventDefault();
         ev.stopPropagation();
+        if ((window.location.pathname || '') !== paneRoute('titulos')) {
+          window.history.pushState({}, '', paneRoute('titulos'));
+        }
         openFinancePage('titulos');
       }
     }, true);
@@ -427,8 +424,10 @@ function createFinanceModule(deps: PortalFinanceDeps): { loadFinance: () => void
     if (fn.done) return;
     if (!document.getElementById('finance-page-titulos')) return;
     if (!document.getElementById('tab-finance') && !document.getElementById('financeMenuTop')) return;
+    const pathParts = (window.location.pathname || '').toLowerCase().split('/').filter(Boolean);
+    const paneId = pathParts[2] || 'titulos';
     fn.done = true;
-    openFinancePage('titulos');
+    openFinancePage(paneId);
   }
   (autoOpenDefaultPage as typeof autoOpenDefaultPage & { done?: boolean }).done = false;
   autoOpenDefaultPage();
@@ -441,6 +440,8 @@ function createFinanceModule(deps: PortalFinanceDeps): { loadFinance: () => void
     });
     financeObserver.observe(document.documentElement || document.body, { childList: true, subtree: true });
   }
+
+  (window as unknown as { __portalOpenFinancePane?: (paneId: string) => HTMLElement | null }).__portalOpenFinancePane = openFinancePage;
 
   getEl('btnLoadFinance')?.addEventListener('click', () => loadFinance());
   getEl('btnGenerateInvoices')?.addEventListener('click', () => {

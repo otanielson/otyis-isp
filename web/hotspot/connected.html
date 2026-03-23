@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hotspot conectado</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { min-height: 100vh; background: linear-gradient(180deg, #07111f, #0c1b33 36%, #eef5fb 36%, #f8fbff 100%); }
+    .wrap { max-width: 920px; padding-top: 3rem; padding-bottom: 3rem; }
+    .panel {
+      border-radius: 28px;
+      overflow: hidden;
+      border: 1px solid rgba(148,163,184,.2);
+      background: rgba(255,255,255,.96);
+      box-shadow: 0 24px 80px rgba(2,8,23,.18);
+    }
+    .hero {
+      padding: 1.6rem;
+      color: #e2e8f0;
+      background: linear-gradient(135deg, #08203c, #0f3d72);
+    }
+    .eyebrow { text-transform: uppercase; letter-spacing: .16em; font-size: .72rem; color: #7dd3fc; font-weight: 800; }
+    .title { font-size: clamp(2rem, 4vw, 3rem); line-height: .95; font-weight: 900; letter-spacing: -.04em; margin: .65rem 0; }
+    .status-badge {
+      display: inline-flex; align-items: center; gap: .45rem; border-radius: 999px; padding: .5rem .85rem;
+      background: rgba(34,197,94,.18); color: #dcfce7; font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em;
+    }
+    .body { padding: 1.5rem; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(280px, .9fr); gap: 1rem; }
+    .card-lite {
+      border: 1px solid #d8e6f4; border-radius: 22px; padding: 1rem 1.05rem;
+      background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+    }
+    .label { display:block; font-size:.74rem; text-transform:uppercase; letter-spacing:.08em; color:#64748b; margin-bottom:.35rem; font-weight:700; }
+    .value { font-size:1rem; font-weight:800; color:#0f172a; word-break: break-word; }
+    .credential { border-radius: 18px; background: #08111d; color: #f8fafc; padding: .95rem 1rem; }
+    .empty { border-radius: 18px; background: #f8fbff; border: 1px dashed #bfd4e8; color: #64748b; padding: 1rem; }
+    @media (max-width: 991.98px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container wrap">
+    <section class="panel">
+      <div class="hero">
+        <div class="eyebrow">Status da sessão</div>
+        <div class="title">Você já está conectado ao hotspot</div>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+          <span class="status-badge" id="hsConnectedBadge">Aguardando validação</span>
+          <span class="small text-white-50" id="hsConnectedMode">Sessão em análise</span>
+        </div>
+      </div>
+      <div class="body">
+        <div id="hsConnectedError" class="alert alert-danger d-none py-2 small"></div>
+        <div class="grid">
+          <div class="card-lite">
+            <div class="label">Credenciais / vínculo</div>
+            <div id="hsConnectedCredentials" class="empty">Carregando dados da sessão...</div>
+            <div class="mt-3 d-flex flex-wrap gap-2">
+              <a href="/" class="btn btn-primary">Ir para o destino</a>
+              <button type="button" class="btn btn-outline-secondary" id="btnConnectedRefresh">Atualizar status</button>
+            </div>
+          </div>
+          <div class="d-grid gap-3">
+            <div class="card-lite">
+              <span class="label">Sessão</span>
+              <div class="value" id="hsConnectedStatus">Carregando</div>
+              <div class="small text-muted mt-2" id="hsConnectedExpires">Sem prazo informado</div>
+            </div>
+            <div class="card-lite">
+              <span class="label">Modo de autenticação</span>
+              <div class="value" id="hsConnectedAuthMode">---</div>
+              <div class="small text-muted mt-2" id="hsConnectedMeta">Hotspot em nuvem com rastreio da sessão.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+    (function () {
+      function byId(id) { return document.getElementById(id); }
+      function esc(value) {
+        return String(value == null ? '' : value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+      function fmtDate(value) {
+        if (!value) return 'Sem expiração definida';
+        var dt = new Date(value);
+        return isNaN(dt.getTime()) ? 'Sem expiração definida' : dt.toLocaleString('pt-BR');
+      }
+      function query(name) {
+        return new URLSearchParams(window.location.search).get(name);
+      }
+      function setError(message) {
+        var el = byId('hsConnectedError');
+        if (!el) return;
+        if (!message) { el.classList.add('d-none'); el.textContent = ''; return; }
+        el.textContent = message;
+        el.classList.remove('d-none');
+      }
+      function render(session, mode) {
+        var status = String(session.status || '').toUpperCase();
+        var authMode = String(session.auth_mode || mode || '').toLowerCase();
+        var badge = byId('hsConnectedBadge');
+        var statusEl = byId('hsConnectedStatus');
+        var expiresEl = byId('hsConnectedExpires');
+        var modeEl = byId('hsConnectedMode');
+        var authModeEl = byId('hsConnectedAuthMode');
+        var metaEl = byId('hsConnectedMeta');
+        var creds = byId('hsConnectedCredentials');
+        if (badge) badge.textContent = status === 'CONNECTED' || status === 'RELEASED' ? 'Sessão ativa' : status || 'Em análise';
+        if (statusEl) statusEl.textContent = status || 'PENDING';
+        if (expiresEl) expiresEl.textContent = 'Expira em: ' + fmtDate(session.expires_at);
+        if (modeEl) modeEl.textContent = 'Modo: ' + (authMode || 'hotspot');
+        if (authModeEl) authModeEl.textContent = authMode || 'hotspot';
+        if (metaEl) metaEl.textContent = session.phone
+          ? 'Telefone validado: ' + session.phone
+          : session.radius_username
+          ? 'Usuário RADIUS validado: ' + session.radius_username
+          : session.voucher_code
+          ? 'Voucher utilizado: ' + session.voucher_code
+          : 'Sessão provisionada pelo portal cloud.';
+        if (creds) {
+          if (session.username || session.password) {
+            creds.innerHTML = ''
+              + '<div class="credential mb-2"><strong>Usuário:</strong> ' + esc(session.username || '---') + '</div>'
+              + '<div class="credential"><strong>Senha:</strong> ' + esc(session.password || '---') + '</div>';
+          } else if (session.radius_username) {
+            creds.innerHTML = '<div class="empty">O acesso foi validado diretamente no RADIUS para o usuário <strong>' + esc(session.radius_username) + '</strong>.</div>';
+          } else {
+            creds.innerHTML = '<div class="empty">A sessão está registrada, mas não há credenciais temporárias para exibir.</div>';
+          }
+        }
+      }
+      function load() {
+        setError(null);
+        var sessionKey = query('session');
+        var tenant = query('tenant');
+        if (!sessionKey) { setError('Sessão não informada.'); return; }
+        var endpoint = tenant
+          ? '/api/hotspot/' + encodeURIComponent(tenant) + '/sessions/' + encodeURIComponent(sessionKey) + '/connected'
+          : '/api/hotspot/sessions/' + encodeURIComponent(sessionKey) + '/connected';
+        fetch(endpoint, { credentials: 'same-origin' })
+          .then(function (res) { return res.text().then(function (text) { return { ok: res.ok, text: text, status: res.status }; }); })
+          .then(function (payload) {
+            var data = {};
+            try { data = payload.text ? JSON.parse(payload.text) : {}; } catch { data = { message: payload.text }; }
+            if (!payload.ok) throw new Error(data.message || ('Erro ' + payload.status));
+            render(data.session || {}, data.mode || 'hotspot');
+          })
+          .catch(function (err) { setError(err.message || 'Não foi possível carregar a sessão.'); });
+      }
+      byId('btnConnectedRefresh')?.addEventListener('click', load);
+      load();
+    })();
+  </script>
+</body>
+</html>
